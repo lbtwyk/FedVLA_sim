@@ -1,9 +1,8 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, LogInfo, RegisterEventHandler, TimerAction, AppendEnvironmentVariable
-from launch.event_handlers import OnProcessStart
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, TimerAction, AppendEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -48,7 +47,7 @@ def generate_launch_description():
         pkg_mycobot_stacking_project, 'rviz', 'stacking_display.rviz'
     ])
 
-    # --- Include other launch files --- 
+    # --- Include other launch files ---
 
     # Gazebo launch
     gazebo_launch = IncludeLaunchDescription(
@@ -87,16 +86,24 @@ def generate_launch_description():
         # respawn=True, # Optional: restart RViz if it crashes
     )
 
-    # --- Nodes for this project --- 
+    # --- Nodes for this project ---
+
+    # Find cube detector parameters
+    cube_detector_params_path = PathJoinSubstitution([
+        pkg_mycobot_stacking_project, 'config', 'cube_detector_params.yaml'
+    ])
 
     # Perception Node
     cube_detector_node = Node(
         package='mycobot_stacking_project',
-        executable='cube_detector', # Use the entry point name from setup.py
+        executable='cube_detector_node', # Use the C++ executable name
         name='cube_detector',
         output='screen',
         arguments=["--ros-args", "--log-level", log_level],
-        parameters=[{'use_sim_time': use_sim_time}]
+        parameters=[
+            {'use_sim_time': use_sim_time},
+            cube_detector_params_path
+        ]
     )
 
     # Application Node (Stacking Manager)
@@ -104,7 +111,7 @@ def generate_launch_description():
     # A more robust way is to wait for specific services/topics, but TimerAction is simpler
     stacking_manager_node = Node(
         package='mycobot_stacking_project',
-        executable='stacking_manager', # Use the entry point name from setup.py
+        executable='stacking_manager_node', # Use the C++ executable name
         name='stacking_manager',
         output='screen',
         arguments=["--ros-args", "--log-level", log_level],
@@ -116,6 +123,15 @@ def generate_launch_description():
         actions=[stacking_manager_node]
     )
 
+    # Cube Spawner Node
+    cube_spawner_node = Node(
+        package='mycobot_stacking_project',
+        executable='cube_spawner_node',
+        name='cube_spawner',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+
     return LaunchDescription(
         declared_arguments + [
         set_models_env,
@@ -123,5 +139,6 @@ def generate_launch_description():
         move_group_launch,
         rviz_node,
         cube_detector_node,
+        cube_spawner_node,
         delayed_stacking_manager,
-    ]) 
+    ])

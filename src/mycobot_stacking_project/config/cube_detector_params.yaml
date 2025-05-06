@@ -1,0 +1,26 @@
+cube_detector:
+  ros__parameters:
+    # Point cloud processing parameters
+    voxel_leaf_size: 0.005
+    plane_distance_threshold: 0.01
+    cluster_tolerance: 0.02
+    min_cluster_points: 100
+    max_cluster_points: 10000
+    target_cube_size: 0.04
+    size_tolerance: 0.01
+
+    # Yellow color range (RGB values 0-1)
+    yellow_r_min: 0.7
+    yellow_r_max: 1.0
+    yellow_g_min: 0.7
+    yellow_g_max: 1.0
+    yellow_b_min: 0.0
+    yellow_b_max: 0.3
+
+    # Orange color range (RGB values 0-1)
+    orange_r_min: 0.7
+    orange_r_max: 1.0
+    orange_g_min: 0.3
+    orange_g_max: 0.7
+    orange_b_min: 0.0
+    orange_b_max: 0.3

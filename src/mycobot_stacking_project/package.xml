@@ -4,33 +4,34 @@
   <name>mycobot_stacking_project</name>
   <version>0.0.0</version>
   <description>A project to stack cubes using myCobot and MoveIt2</description>
-  <maintainer email="wangyukun@todo.todo">wangyukun</maintainer>
+  <maintainer email="lambert.wang.23@ucl.ac.uk">Yukun Wang</maintainer>
   <license>Apache License 2.0</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>moveit_msgs</depend>
+  <depend>shape_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>tf2_eigen</depend>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>pcl_conversions</depend>
+  <depend>libpcl-dev</depend>
 
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>moveit_msgs</exec_depend>
-  <exec_depend>shape_msgs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>tf2_geometry_msgs</exec_depend>
-  <exec_depend>moveit_ros_planning_interface</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>mycobot_description</exec_depend>
   <exec_depend>mycobot_moveit_config</exec_depend>
   <exec_depend>mycobot_gazebo</exec_depend>
   <exec_depend>rviz2</exec_depend>
-  <exec_depend>python3-pcl</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
