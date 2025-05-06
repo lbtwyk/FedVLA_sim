@@ -1,0 +1,125 @@
+# ROS 2 specific ignores
+install/
+log/
+build/
+
+# Ignore generated docs
+*.dox
+*.wikidoc
+
+# Eclipse IDE
+.project
+.cproject
+.settings/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# CLion
+.idea/
+cmake-build-*/
+
+# QtCreator
+CMakeLists.txt.user
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Logs
+*.log
+log/
+
+# Colcon and ament
+.colcon_cd_root
+.ament_prefix_path
+
+# Environment hooks
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Bag files
+*.bag
+*.db3
+
+# Custom message generation
+*__type_support.cpp
+*__rosidl_typesupport_*
+
+# PCL specific
+*.pcd
+*.ply
+
+# Temporary files
+*.swp
+*.swo
