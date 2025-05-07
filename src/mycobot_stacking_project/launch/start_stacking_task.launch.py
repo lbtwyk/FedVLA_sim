@@ -4,11 +4,8 @@ from launch.actions import (
     IncludeLaunchDescription,
     DeclareLaunchArgument,
     TimerAction,
-    AppendEnvironmentVariable,
-    RegisterEventHandler,
-    ExecuteProcess
+    AppendEnvironmentVariable
 )
-from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -125,58 +122,11 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}]
     )
 
-    # Load controllers in sequence
-    # First, load the joint state broadcaster
-    load_joint_state_broadcaster_cmd = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'joint_state_broadcaster'],
-        output='screen'
-    )
-
-    # Then, load the arm controller after joint state broadcaster is loaded
-    load_arm_controller_cmd = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'arm_controller'],
-        output='screen'
-    )
-
-    # Finally, load the gripper controller after arm controller is loaded
-    load_gripper_controller_cmd = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'gripper_action_controller'],
-        output='screen'
-    )
-
-    # Register event handlers for sequencing
-    # Launch the arm controller after joint state broadcaster is loaded
-    arm_controller_event_handler = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=load_joint_state_broadcaster_cmd,
-            on_exit=[load_arm_controller_cmd]
-        )
-    )
-
-    # Launch the gripper controller after arm controller is loaded
-    gripper_controller_event_handler = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=load_arm_controller_cmd,
-            on_exit=[load_gripper_controller_cmd]
-        )
-    )
-
-    # Launch the stacking manager after gripper controller is loaded
-    stacking_manager_event_handler = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=load_gripper_controller_cmd,
-            on_exit=[stacking_manager_node]
-        )
-    )
-
-    # Add a delay before starting the controller loading sequence
+    # Add a delay before starting the stacking manager
     # to ensure Gazebo and MoveIt are fully initialized
-    delayed_controller_loading = TimerAction(
-        period=15.0,  # Start after 15 seconds
-        actions=[load_joint_state_broadcaster_cmd]
+    delayed_stacking_manager = TimerAction(
+        period=30.0,  # Start after 30 seconds
+        actions=[stacking_manager_node]
     )
 
     # Cube Spawner Node
@@ -188,6 +138,47 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}]
     )
 
+    # Load controllers with a delay
+    load_joint_state_broadcaster = Node(
+        package='controller_manager',
+        executable='spawner',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
+    )
+
+    load_arm_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        arguments=['arm_controller', '--controller-manager', '/controller_manager'],
+    )
+
+    load_gripper_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        arguments=['gripper_action_controller', '--controller-manager', '/controller_manager'],
+    )
+
+    # Add delays for loading controllers
+    delayed_joint_state_broadcaster = TimerAction(
+        period=10.0,  # Start after 10 seconds
+        actions=[load_joint_state_broadcaster]
+    )
+
+    delayed_arm_controller = TimerAction(
+        period=15.0,  # Start after 15 seconds
+        actions=[load_arm_controller]
+    )
+
+    delayed_gripper_controller = TimerAction(
+        period=20.0,  # Start after 20 seconds
+        actions=[load_gripper_controller]
+    )
+
     return LaunchDescription(
         declared_arguments + [
         set_models_env,
@@ -196,9 +187,10 @@ def generate_launch_description():
         rviz_node,
         cube_detector_node,
         cube_spawner_node,
-        # Add the controller loading sequence with event handlers
-        delayed_controller_loading,
-        arm_controller_event_handler,
-        gripper_controller_event_handler,
-        stacking_manager_event_handler,
+        # Add controller loading with delays
+        delayed_joint_state_broadcaster,
+        delayed_arm_controller,
+        delayed_gripper_controller,
+        # Add the stacking manager with a delay to ensure Gazebo and MoveIt are initialized
+        delayed_stacking_manager,
     ])

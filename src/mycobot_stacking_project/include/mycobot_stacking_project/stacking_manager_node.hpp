@@ -14,6 +14,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/planning_scene_interface/planning_scene_interface.hpp>
+#include <moveit/utils/moveit_error_code.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 #include <control_msgs/action/gripper_command.hpp>

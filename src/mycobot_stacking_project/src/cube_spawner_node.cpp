@@ -35,23 +35,23 @@ CubeSpawnerNode::CubeSpawnerNode(const rclcpp::NodeOptions & options)
 
 void CubeSpawnerNode::timer_callback()
 {
-  RCLCPP_INFO(this->get_logger(), "Spawning cubes...");
+  RCLCPP_INFO(this->get_logger(), "Adding cubes to planning scene...");
 
-  // Spawn the yellow cube
+  // Add the yellow cube to the planning scene
   spawn_yellow_cube();
 
-  // Spawn the orange cube
+  // Add the orange cube to the planning scene
   spawn_orange_cube();
 
-  // Cancel the timer after spawning the cubes
+  // Cancel the timer after adding the cubes
   timer_->cancel();
 
-  RCLCPP_INFO(this->get_logger(), "Cubes spawned successfully");
+  RCLCPP_INFO(this->get_logger(), "Cubes added to planning scene successfully");
 }
 
 void CubeSpawnerNode::spawn_yellow_cube()
 {
-  RCLCPP_INFO(this->get_logger(), "Spawning yellow cube");
+  RCLCPP_INFO(this->get_logger(), "Adding yellow cube to planning scene");
 
   // Create a planning scene interface
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -69,7 +69,7 @@ void CubeSpawnerNode::spawn_yellow_cube()
   primitive.dimensions[1] = 0.04; // y
   primitive.dimensions[2] = 0.04; // z
 
-  // Define the cube pose
+  // Define the cube pose - same as in the Gazebo world
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.22;
   cube_pose.position.y = 0.12;
@@ -84,13 +84,13 @@ void CubeSpawnerNode::spawn_yellow_cube()
   // Add the collision object to the planning scene
   planning_scene_interface.applyCollisionObject(yellow_cube);
 
-  RCLCPP_INFO(this->get_logger(), "Yellow cube spawned at position (%.2f, %.2f, %.2f)",
+  RCLCPP_INFO(this->get_logger(), "Yellow cube added to planning scene at position (%.2f, %.2f, %.2f)",
     cube_pose.position.x, cube_pose.position.y, cube_pose.position.z);
 }
 
 void CubeSpawnerNode::spawn_orange_cube()
 {
-  RCLCPP_INFO(this->get_logger(), "Spawning orange cube");
+  RCLCPP_INFO(this->get_logger(), "Adding orange cube to planning scene");
 
   // Create a planning scene interface
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -108,7 +108,7 @@ void CubeSpawnerNode::spawn_orange_cube()
   primitive.dimensions[1] = 0.04; // y
   primitive.dimensions[2] = 0.04; // z
 
-  // Define the cube pose
+  // Define the cube pose - same as in the Gazebo world
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.4;
   cube_pose.position.y = 0.15;
@@ -123,7 +123,7 @@ void CubeSpawnerNode::spawn_orange_cube()
   // Add the collision object to the planning scene
   planning_scene_interface.applyCollisionObject(orange_cube);
 
-  RCLCPP_INFO(this->get_logger(), "Orange cube spawned at position (%.2f, %.2f, %.2f)",
+  RCLCPP_INFO(this->get_logger(), "Orange cube added to planning scene at position (%.2f, %.2f, %.2f)",
     cube_pose.position.x, cube_pose.position.y, cube_pose.position.z);
 }
 

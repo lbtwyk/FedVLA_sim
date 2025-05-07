@@ -20,6 +20,28 @@ moveit_simple_controller_manager:
       - link4_to_link5
       - link5_to_link6
       - link6_to_link6_flange
+    # QoS settings for action client to ensure compatibility with ROS 2 controllers
+    action_client_qos:
+      goal_service:
+        reliability: reliable
+        history: keep_last
+        depth: 10
+      result_service:
+        reliability: reliable
+        history: keep_last
+        depth: 10
+      cancel_service:
+        reliability: reliable
+        history: keep_last
+        depth: 10
+      feedback:
+        reliability: reliable
+        history: keep_last
+        depth: 10
+      status:
+        reliability: reliable
+        history: keep_last
+        depth: 10
 
   # Configuration for the gripper_action_controller.
   gripper_action_controller:

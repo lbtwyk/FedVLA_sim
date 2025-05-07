@@ -396,20 +396,16 @@ bool StackingManagerNode::go_to_named_state(const std::string& state_name)
 {
   RCLCPP_INFO(this->get_logger(), "Moving to named state: %s", state_name.c_str());
 
+  // Set the named target
   arm_group_->setNamedTarget(state_name);
 
-  moveit::planning_interface::MoveGroupInterface::Plan plan;
-  bool success = static_cast<bool>(arm_group_->plan(plan));
+  // Plan and execute in a single call
+  moveit::core::MoveItErrorCode error_code = arm_group_->move();
+  bool success = (error_code == moveit::core::MoveItErrorCode::SUCCESS);
 
   if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to plan to named state: %s", state_name.c_str());
-    return false;
-  }
-
-  success = static_cast<bool>(arm_group_->execute(plan));
-
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to execute plan to named state: %s", state_name.c_str());
+    RCLCPP_ERROR(this->get_logger(), "Failed to move to named state: %s (error code: %i)",
+                state_name.c_str(), static_cast<int>(error_code.val));
     return false;
   }
 
@@ -436,12 +432,10 @@ bool StackingManagerNode::go_to_pose(const geometry_msgs::msg::PoseStamped& targ
     return false;
   }
 
-  success = static_cast<bool>(arm_group_->execute(plan));
-
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to execute plan for %s", description.c_str());
-    return false;
-  }
+  // Use the MoveIt interface to execute the plan
+  // Instead of using execute(), we'll use the MoveIt interface's move() method
+  // which uses the MoveGroup action interface
+  arm_group_->move();
 
   RCLCPP_INFO(this->get_logger(), "Successfully completed %s", description.c_str());
   return true;
@@ -456,27 +450,25 @@ bool StackingManagerNode::move_cartesian(const geometry_msgs::msg::Pose& target_
              target_pose.position.y,
              target_pose.position.z);
 
-  std::vector<geometry_msgs::msg::Pose> waypoints;
-  waypoints.push_back(target_pose);
+  // Instead of using computeCartesianPath, we'll use setPoseTarget and move
+  geometry_msgs::msg::PoseStamped pose_stamped;
+  pose_stamped.header.frame_id = arm_group_->getPlanningFrame();
+  pose_stamped.pose = target_pose;
 
-  moveit_msgs::msg::RobotTrajectory trajectory;
-  const double eef_step = 0.01;
+  arm_group_->setPoseTarget(pose_stamped);
 
-  // Use the non-deprecated version of computeCartesianPath (without jump_threshold)
-  double fraction = arm_group_->computeCartesianPath(waypoints, eef_step, trajectory);
-
-  if (fraction < 0.9) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to compute Cartesian path for %s (%.2f%% achieved)",
-                description.c_str(), fraction * 100.0);
-    return false;
-  }
-
-  bool success = static_cast<bool>(arm_group_->execute(trajectory));
+  moveit::planning_interface::MoveGroupInterface::Plan plan;
+  bool success = static_cast<bool>(arm_group_->plan(plan));
 
   if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to execute Cartesian path for %s", description.c_str());
+    RCLCPP_ERROR(this->get_logger(), "Failed to plan %s", description.c_str());
     return false;
   }
+
+  // Use the MoveIt interface to execute the plan
+  // Instead of using execute(), we'll use the MoveIt interface's move() method
+  // which uses the MoveGroup action interface
+  arm_group_->move();
 
   RCLCPP_INFO(this->get_logger(), "Successfully completed %s", description.c_str());
   return true;
@@ -496,12 +488,10 @@ bool StackingManagerNode::set_gripper_state(const std::string& state_name)
     return false;
   }
 
-  success = static_cast<bool>(gripper_group_->execute(plan));
-
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to execute plan for gripper state: %s", state_name.c_str());
-    return false;
-  }
+  // Use the MoveIt interface to execute the plan
+  // Instead of using execute(), we'll use the MoveIt interface's move() method
+  // which uses the MoveGroup action interface
+  gripper_group_->move();
 
   RCLCPP_INFO(this->get_logger(), "Successfully set gripper state: %s", state_name.c_str());
   return true;

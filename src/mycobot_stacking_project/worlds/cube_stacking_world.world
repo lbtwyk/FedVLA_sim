@@ -8,6 +8,9 @@
     </plugin>
     <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster">
     </plugin>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
 
     <!-- Light Source -->
     <light type="directional" name="sun">
@@ -30,18 +33,112 @@
     </include>
 
     <!-- Yellow Cube -->
-    <include>
-      <name>yellow_cube</name>
-      <uri>model://yellow_cube</uri> <!-- Assumes models are in GZ_SIM_RESOURCE_PATH -->
-      <pose>0.22 0.12 0.02 0 0 0</pose>
-    </include>
+    <model name="yellow_cube">
+      <pose>0.22 0.12 0.04 0 0 0</pose>
+      <link name="link">
+        <inertial>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>2.0833e-5</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>2.0833e-5</iyy>
+            <iyz>0</iyz>
+            <izz>2.0833e-5</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.04 0.04 0.04</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.0</mu>
+                <mu2>1.0</mu2>
+              </ode>
+            </friction>
+            <contact>
+              <ode>
+                <kp>1e+5</kp>
+                <kd>1</kd>
+                <min_depth>0.001</min_depth>
+                <max_vel>0.1</max_vel>
+              </ode>
+            </contact>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.04 0.04 0.04</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>1.0 1.0 0.0 1</ambient>
+            <diffuse>1.0 1.0 0.0 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+      </link>
+      <static>false</static>
+    </model>
 
     <!-- Orange Cube -->
-    <include>
-      <name>orange_cube</name>
-      <uri>model://orange_cube</uri> <!-- Assumes models are in GZ_SIM_RESOURCE_PATH -->
-      <pose>0.4 0.15 0.02 0 0 0</pose>
-    </include>
+    <model name="orange_cube">
+      <pose>0.4 0.15 0.04 0 0 0</pose>
+      <link name="link">
+        <inertial>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>2.0833e-5</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>2.0833e-5</iyy>
+            <iyz>0</iyz>
+            <izz>2.0833e-5</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.04 0.04 0.04</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.0</mu>
+                <mu2>1.0</mu2>
+              </ode>
+            </friction>
+            <contact>
+              <ode>
+                <kp>1e+5</kp>
+                <kd>1</kd>
+                <min_depth>0.001</min_depth>
+                <max_vel>0.1</max_vel>
+              </ode>
+            </contact>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.04 0.04 0.04</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>1.0 0.5 0.0 1</ambient>
+            <diffuse>1.0 0.5 0.0 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+      </link>
+      <static>false</static>
+    </model>
 
   </world>
 </sdf>
