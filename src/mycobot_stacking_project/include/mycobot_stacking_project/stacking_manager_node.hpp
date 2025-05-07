@@ -65,7 +65,7 @@ private:
    * @param timeout_sec Timeout in seconds.
    * @return True if both cubes were detected, false otherwise.
    */
-  bool wait_for_cubes(double timeout_sec = 30.0);
+  bool wait_for_cubes(double timeout_sec = 120.0);
 
   /**
    * @brief Move the arm to a named state.

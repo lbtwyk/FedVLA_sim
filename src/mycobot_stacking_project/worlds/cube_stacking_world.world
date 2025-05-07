@@ -34,7 +34,7 @@
 
     <!-- Yellow Cube -->
     <model name="yellow_cube">
-      <pose>0.22 0.12 0.04 0 0 0</pose>
+      <pose>0.2 0.15 0.05 0 0 0</pose>
       <link name="link">
         <inertial>
           <mass>0.05</mass>
@@ -88,7 +88,7 @@
 
     <!-- Orange Cube -->
     <model name="orange_cube">
-      <pose>0.4 0.15 0.04 0 0 0</pose>
+      <pose>0.35 0.15 0.05 0 0 0</pose>
       <link name="link">
         <inertial>
           <mass>0.05</mass>

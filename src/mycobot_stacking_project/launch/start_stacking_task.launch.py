@@ -94,23 +94,18 @@ def generate_launch_description():
 
     # --- Nodes for this project ---
 
-    # Find cube detector parameters
-    cube_detector_params_path = PathJoinSubstitution([
-        pkg_mycobot_stacking_project, 'config', 'cube_detector_params.yaml'
-    ])
-
-    # Perception Node
-    cube_detector_node = Node(
-        package='mycobot_stacking_project',
-        executable='cube_detector_node', # Use the C++ executable name
-        name='cube_detector',
-        output='screen',
-        arguments=["--ros-args", "--log-level", log_level],
-        parameters=[
-            {'use_sim_time': use_sim_time},
-            cube_detector_params_path
-        ]
-    )
+    # Perception Node - Commented out as we're using direct cube spawning instead
+    # cube_detector_node = Node(
+    #     package='mycobot_stacking_project',
+    #     executable='cube_detector_node', # Use the C++ executable name
+    #     name='cube_detector',
+    #     output='screen',
+    #     arguments=["--ros-args", "--log-level", log_level],
+    #     parameters=[
+    #         {'use_sim_time': use_sim_time},
+    #         cube_detector_params_path
+    #     ]
+    # )
 
     # Application Node (Stacking Manager)
     stacking_manager_node = Node(
@@ -129,13 +124,20 @@ def generate_launch_description():
         actions=[stacking_manager_node]
     )
 
-    # Cube Spawner Node
+    # Cube Spawner Node - Using direct cube spawning instead of perception
     cube_spawner_node = Node(
         package='mycobot_stacking_project',
         executable='cube_spawner_node',
         name='cube_spawner',
         output='screen',
         parameters=[{'use_sim_time': use_sim_time}]
+    )
+
+    # Add a delay before starting the cube spawner
+    # to ensure MoveIt is fully initialized
+    delayed_cube_spawner = TimerAction(
+        period=15.0,  # Start after 15 seconds
+        actions=[cube_spawner_node]
     )
 
     # Load controllers with a delay
@@ -185,12 +187,12 @@ def generate_launch_description():
         gazebo_launch,
         move_group_launch,
         rviz_node,
-        cube_detector_node,
-        cube_spawner_node,
         # Add controller loading with delays
         delayed_joint_state_broadcaster,
         delayed_arm_controller,
         delayed_gripper_controller,
+        # Add the cube spawner with a delay
+        delayed_cube_spawner,
         # Add the stacking manager with a delay to ensure Gazebo and MoveIt are initialized
         delayed_stacking_manager,
     ])

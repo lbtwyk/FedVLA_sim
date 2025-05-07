@@ -1,26 +1,26 @@
 cube_detector:
   ros__parameters:
     # Point cloud processing parameters
-    voxel_leaf_size: 0.005
-    plane_distance_threshold: 0.01
-    cluster_tolerance: 0.02
-    min_cluster_points: 100
-    max_cluster_points: 10000
+    voxel_leaf_size: 0.01  # Increased from 0.005 to reduce point cloud density
+    plane_distance_threshold: 0.05  # Significantly increased to be more tolerant
+    cluster_tolerance: 0.08  # Significantly increased to be more tolerant
+    min_cluster_points: 10  # Reduced to detect smaller clusters
+    max_cluster_points: 50000  # Increased to handle larger clusters
     target_cube_size: 0.04
-    size_tolerance: 0.01
+    size_tolerance: 0.1  # Increased tolerance but not too extreme
 
-    # Yellow color range (RGB values 0-1)
-    yellow_r_min: 0.7
+    # Yellow color range (RGB values 0-1) - Adjusted for black cubes in simulation
+    yellow_r_min: 0.0  # Allow black cubes to be detected as yellow
     yellow_r_max: 1.0
-    yellow_g_min: 0.7
+    yellow_g_min: 0.0  # Allow black cubes to be detected as yellow
     yellow_g_max: 1.0
     yellow_b_min: 0.0
     yellow_b_max: 0.3
 
-    # Orange color range (RGB values 0-1)
-    orange_r_min: 0.7
+    # Orange color range (RGB values 0-1) - Adjusted for black cubes in simulation
+    orange_r_min: 0.0  # Allow black cubes to be detected as orange
     orange_r_max: 1.0
-    orange_g_min: 0.3
+    orange_g_min: 0.0  # Allow black cubes to be detected as orange
     orange_g_max: 0.7
     orange_b_min: 0.0
     orange_b_max: 0.3

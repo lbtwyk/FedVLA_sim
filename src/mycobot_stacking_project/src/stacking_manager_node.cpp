@@ -349,6 +349,9 @@ bool StackingManagerNode::wait_for_cubes(double timeout_sec)
   auto start_time = this->now();
   bool found_yellow = false;
   bool found_orange = false;
+  int consecutive_yellow_detections = 0;
+  int consecutive_orange_detections = 0;
+  const int required_consecutive_detections = 3; // Require 3 consecutive detections for stability
 
   while (rclcpp::ok()) {
     auto current_time = this->now();
@@ -363,27 +366,76 @@ bool StackingManagerNode::wait_for_cubes(double timeout_sec)
 
     // Check if yellow cube is found
     if (object_poses.find(YELLOW_CUBE_ID) != object_poses.end()) {
-      yellow_cube_pose_ = object_poses[YELLOW_CUBE_ID];
-      found_yellow = true;
-      RCLCPP_INFO(this->get_logger(), "Found yellow cube at [%.3f, %.3f, %.3f]",
-                 yellow_cube_pose_.position.x,
-                 yellow_cube_pose_.position.y,
-                 yellow_cube_pose_.position.z);
+      // Store the pose
+      geometry_msgs::msg::Pose current_yellow_pose = object_poses[YELLOW_CUBE_ID];
+
+      // If this is the first detection or if the pose is stable
+      if (!found_yellow ||
+          (std::abs(current_yellow_pose.position.x - yellow_cube_pose_.position.x) < 0.01 &&
+           std::abs(current_yellow_pose.position.y - yellow_cube_pose_.position.y) < 0.01 &&
+           std::abs(current_yellow_pose.position.z - yellow_cube_pose_.position.z) < 0.01)) {
+
+        yellow_cube_pose_ = current_yellow_pose;
+        consecutive_yellow_detections++;
+
+        if (consecutive_yellow_detections >= required_consecutive_detections && !found_yellow) {
+          found_yellow = true;
+          RCLCPP_INFO(this->get_logger(), "Found stable yellow cube at [%.3f, %.3f, %.3f]",
+                     yellow_cube_pose_.position.x,
+                     yellow_cube_pose_.position.y,
+                     yellow_cube_pose_.position.z);
+        }
+      } else {
+        // Reset counter if position changed significantly
+        consecutive_yellow_detections = 1;
+        yellow_cube_pose_ = current_yellow_pose;
+        RCLCPP_DEBUG(this->get_logger(), "Yellow cube position changed, resetting stability counter");
+      }
+    } else {
+      consecutive_yellow_detections = 0;
     }
 
     // Check if orange cube is found
     if (object_poses.find(ORANGE_CUBE_ID) != object_poses.end()) {
-      orange_cube_pose_ = object_poses[ORANGE_CUBE_ID];
-      found_orange = true;
-      RCLCPP_INFO(this->get_logger(), "Found orange cube at [%.3f, %.3f, %.3f]",
-                 orange_cube_pose_.position.x,
-                 orange_cube_pose_.position.y,
-                 orange_cube_pose_.position.z);
+      // Store the pose
+      geometry_msgs::msg::Pose current_orange_pose = object_poses[ORANGE_CUBE_ID];
+
+      // If this is the first detection or if the pose is stable
+      if (!found_orange ||
+          (std::abs(current_orange_pose.position.x - orange_cube_pose_.position.x) < 0.01 &&
+           std::abs(current_orange_pose.position.y - orange_cube_pose_.position.y) < 0.01 &&
+           std::abs(current_orange_pose.position.z - orange_cube_pose_.position.z) < 0.01)) {
+
+        orange_cube_pose_ = current_orange_pose;
+        consecutive_orange_detections++;
+
+        if (consecutive_orange_detections >= required_consecutive_detections && !found_orange) {
+          found_orange = true;
+          RCLCPP_INFO(this->get_logger(), "Found stable orange cube at [%.3f, %.3f, %.3f]",
+                     orange_cube_pose_.position.x,
+                     orange_cube_pose_.position.y,
+                     orange_cube_pose_.position.z);
+        }
+      } else {
+        // Reset counter if position changed significantly
+        consecutive_orange_detections = 1;
+        orange_cube_pose_ = current_orange_pose;
+        RCLCPP_DEBUG(this->get_logger(), "Orange cube position changed, resetting stability counter");
+      }
+    } else {
+      consecutive_orange_detections = 0;
     }
 
     if (found_yellow && found_orange) {
-      RCLCPP_INFO(this->get_logger(), "Found both cubes!");
+      RCLCPP_INFO(this->get_logger(), "Found both cubes with stable positions!");
       return true;
+    }
+
+    // Print status update every 5 seconds
+    if (static_cast<int>((current_time - start_time).seconds()) % 5 == 0) {
+      RCLCPP_INFO(this->get_logger(), "Still waiting for cubes... Yellow: %s (%d/%d), Orange: %s (%d/%d)",
+                 found_yellow ? "Found" : "Not found", consecutive_yellow_detections, required_consecutive_detections,
+                 found_orange ? "Found" : "Not found", consecutive_orange_detections, required_consecutive_detections);
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
