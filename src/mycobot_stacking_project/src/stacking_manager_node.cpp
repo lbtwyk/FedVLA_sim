@@ -57,6 +57,11 @@ StackingManagerNode::StackingManagerNode(const rclcpp::NodeOptions & options)
 
   RCLCPP_INFO(this->get_logger(), "Stacking Manager Node initialized");
 
+  // Wait for controllers to be ready before starting the task
+  if (!check_controllers_ready()) {
+    RCLCPP_ERROR(this->get_logger(), "Controllers not ready. Task execution will likely fail.");
+  }
+
   // Start task execution in a separate thread
   task_thread_ = std::thread(&StackingManagerNode::execute_stacking_task, this);
 }
@@ -85,12 +90,12 @@ void StackingManagerNode::execute_stacking_task()
   geometry_msgs::msg::Quaternion grasp_orientation_msg = tf2::toMsg(grasp_orientation);
 
   // Define target poses
-  // Yellow pre-grasp pose
+  // Yellow pre-grasp pose - use a higher approach to avoid planning issues
   geometry_msgs::msg::PoseStamped yellow_pre_grasp_pose;
   yellow_pre_grasp_pose.header.frame_id = "base_link";
   yellow_pre_grasp_pose.pose.position.x = yellow_cube_pose_.position.x;
   yellow_pre_grasp_pose.pose.position.y = yellow_cube_pose_.position.y;
-  yellow_pre_grasp_pose.pose.position.z = yellow_cube_pose_.position.z + APPROACH_DISTANCE;
+  yellow_pre_grasp_pose.pose.position.z = yellow_cube_pose_.position.z + APPROACH_DISTANCE + 0.05; // Add extra height
   yellow_pre_grasp_pose.pose.orientation = grasp_orientation_msg;
 
   // Yellow grasp pose
@@ -139,19 +144,66 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Move to yellow pre-grasp
+  // Move to yellow pre-grasp using a safer approach
+  // First, move to a position above the cube
+  geometry_msgs::msg::PoseStamped safe_approach_pose;
+  safe_approach_pose.header.frame_id = "base_link";
+  safe_approach_pose.pose.position.x = 0.2;  // Fixed position in front of the robot
+  safe_approach_pose.pose.position.y = 0.0;  // Centered
+  safe_approach_pose.pose.position.z = 0.25; // Safe height
+  safe_approach_pose.pose.orientation = grasp_orientation_msg;
+
+  success &= go_to_pose(safe_approach_pose, "Move to Safe Approach Position");
+  if (!success) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to move to safe approach position. Aborting task.");
+    return;
+  }
+
+  // Now move to the yellow pre-grasp position
   success &= go_to_pose(yellow_pre_grasp_pose, "Move to Yellow Pre-Grasp");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move to yellow pre-grasp. Aborting task.");
     return;
   }
 
-  // Approach yellow linearly
-  success &= move_cartesian(yellow_grasp_pose, "Approach Yellow Cube");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to approach yellow cube. Aborting task.");
-    return;
+  // Use a more robust approach for grasping the yellow cube
+  // Instead of trying to go directly to the intermediate pose, use small incremental steps
+  double start_z = yellow_pre_grasp_pose.pose.position.z;
+  double target_z = yellow_cube_pose_.position.z + CUBE_SIZE * 0.5 + 0.005; // Final grasp height
+  double step_size = 0.02; // 2cm steps
+
+  // Create a pose for incremental movement
+  geometry_msgs::msg::PoseStamped current_pose = yellow_pre_grasp_pose;
+
+  // Move down in small increments
+  while (current_pose.pose.position.z > target_z && success) {
+    // Calculate next z position
+    current_pose.pose.position.z -= step_size;
+
+    // Don't go below the target
+    if (current_pose.pose.position.z < target_z) {
+      current_pose.pose.position.z = target_z;
+    }
+
+    // Move to the next position
+    std::string description = "Moving to z=" + std::to_string(current_pose.pose.position.z);
+    success &= go_to_pose(current_pose, description);
+
+    if (!success) {
+      RCLCPP_ERROR(this->get_logger(), "Failed during incremental approach to yellow cube. Aborting task.");
+      return;
+    }
+
+    // If we've reached the target, break out of the loop
+    if (current_pose.pose.position.z <= target_z) {
+      break;
+    }
+
+    // Small pause between movements
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
+
+  RCLCPP_INFO(this->get_logger(), "Successfully reached yellow grasp position");
 
   // Close gripper (Grasp)
   success &= set_gripper_state("close");
@@ -170,26 +222,76 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Lift yellow cube linearly
-  success &= move_cartesian(lift_pose, "Lift Yellow Cube");
+  // Lift yellow cube using regular motion planning instead of Cartesian path
+  geometry_msgs::msg::PoseStamped lift_pose_stamped;
+  lift_pose_stamped.header.frame_id = "base_link";
+  lift_pose_stamped.pose = lift_pose;
+
+  success &= go_to_pose(lift_pose_stamped, "Lift Yellow Cube");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to lift yellow cube. Aborting task.");
     return;
   }
 
-  // Move to orange pre-place
+  // Move to orange pre-place using a safer approach
+  // First, move to a position above the destination
+  geometry_msgs::msg::PoseStamped safe_place_pose;
+  safe_place_pose.header.frame_id = "base_link";
+  safe_place_pose.pose.position.x = 0.3;  // Position between yellow and orange cube
+  safe_place_pose.pose.position.y = 0.0;  // Centered
+  safe_place_pose.pose.position.z = 0.25; // Safe height
+  safe_place_pose.pose.orientation = grasp_orientation_msg;
+
+  success &= go_to_pose(safe_place_pose, "Move to Safe Place Position");
+  if (!success) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to move to safe place position. Aborting task.");
+    return;
+  }
+
+  // Now move to the orange pre-place position
   success &= go_to_pose(orange_pre_place_pose, "Move to Orange Pre-Place");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move to orange pre-place. Aborting task.");
     return;
   }
 
-  // Place yellow cube on orange cube linearly
-  success &= move_cartesian(orange_place_pose, "Place Yellow Cube on Orange Cube");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to place yellow cube on orange cube. Aborting task.");
-    return;
+  // Use the same incremental approach for placing the yellow cube on the orange cube
+  double place_start_z = orange_pre_place_pose.pose.position.z;
+  double place_target_z = orange_cube_pose_.position.z + CUBE_SIZE + CUBE_SIZE * 0.5 + 0.005; // Final place height
+  double place_step_size = 0.02; // 2cm steps
+
+  // Create a pose for incremental movement
+  geometry_msgs::msg::PoseStamped place_current_pose = orange_pre_place_pose;
+
+  // Move down in small increments
+  while (place_current_pose.pose.position.z > place_target_z && success) {
+    // Calculate next z position
+    place_current_pose.pose.position.z -= place_step_size;
+
+    // Don't go below the target
+    if (place_current_pose.pose.position.z < place_target_z) {
+      place_current_pose.pose.position.z = place_target_z;
+    }
+
+    // Move to the next position
+    std::string description = "Moving to place position z=" + std::to_string(place_current_pose.pose.position.z);
+    success &= go_to_pose(place_current_pose, description);
+
+    if (!success) {
+      RCLCPP_ERROR(this->get_logger(), "Failed during incremental approach to place position. Aborting task.");
+      return;
+    }
+
+    // If we've reached the target, break out of the loop
+    if (place_current_pose.pose.position.z <= place_target_z) {
+      break;
+    }
+
+    // Small pause between movements
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
+
+  RCLCPP_INFO(this->get_logger(), "Successfully reached orange place position");
 
   // Open gripper (Release)
   success &= set_gripper_state("open");
@@ -208,10 +310,24 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Move back to orange pre-place
-  success &= move_cartesian(orange_pre_place_pose.pose, "Move back to Orange Pre-Place");
+  // Move back to orange pre-place using regular motion planning instead of Cartesian path
+  success &= go_to_pose(orange_pre_place_pose, "Move back to Orange Pre-Place");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move back to orange pre-place. Aborting task.");
+    return;
+  }
+
+  // Move to safe position before going home
+  geometry_msgs::msg::PoseStamped safe_return_pose;
+  safe_return_pose.header.frame_id = "base_link";
+  safe_return_pose.pose.position.x = 0.2;  // Fixed position in front of the robot
+  safe_return_pose.pose.position.y = 0.0;  // Centered
+  safe_return_pose.pose.position.z = 0.25; // Safe height
+  safe_return_pose.pose.orientation = grasp_orientation_msg;
+
+  success &= go_to_pose(safe_return_pose, "Move to Safe Return Position");
+  if (!success) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to move to safe return position. Aborting task.");
     return;
   }
 
@@ -409,6 +525,88 @@ bool StackingManagerNode::detach_cube(const std::string& object_id)
 
   RCLCPP_INFO(this->get_logger(), "Successfully detached object '%s'", object_id.c_str());
   return true;
+}
+
+bool StackingManagerNode::wait_for_arm_controller(double timeout_sec)
+{
+  RCLCPP_INFO(this->get_logger(), "Waiting for arm controller to become available...");
+
+  // Create an action client for the arm controller
+  auto arm_client = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
+    node_for_movegroup_,
+    "/arm_controller/follow_joint_trajectory"
+  );
+
+  // Wait for the action server to become available
+  auto start_time = node_for_movegroup_->now();
+  while (rclcpp::ok()) {
+    if (arm_client->action_server_is_ready()) {
+      RCLCPP_INFO(this->get_logger(), "Arm controller is available!");
+      return true;
+    }
+
+    auto current_time = node_for_movegroup_->now();
+    if ((current_time - start_time).seconds() > timeout_sec) {
+      RCLCPP_ERROR(this->get_logger(), "Timeout waiting for arm controller after %.1f seconds", timeout_sec);
+      return false;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Waiting for arm controller... (%.1f seconds elapsed)",
+               (current_time - start_time).seconds());
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+
+  return false;
+}
+
+bool StackingManagerNode::wait_for_gripper_controller(double timeout_sec)
+{
+  RCLCPP_INFO(this->get_logger(), "Waiting for gripper controller to become available...");
+
+  // Create an action client for the gripper controller
+  auto gripper_client = rclcpp_action::create_client<control_msgs::action::GripperCommand>(
+    node_for_movegroup_,
+    "/gripper_action_controller/gripper_cmd"
+  );
+
+  // Wait for the action server to become available
+  auto start_time = node_for_movegroup_->now();
+  while (rclcpp::ok()) {
+    if (gripper_client->action_server_is_ready()) {
+      RCLCPP_INFO(this->get_logger(), "Gripper controller is available!");
+      return true;
+    }
+
+    auto current_time = node_for_movegroup_->now();
+    if ((current_time - start_time).seconds() > timeout_sec) {
+      RCLCPP_ERROR(this->get_logger(), "Timeout waiting for gripper controller after %.1f seconds", timeout_sec);
+      return false;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Waiting for gripper controller... (%.1f seconds elapsed)",
+               (current_time - start_time).seconds());
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+
+  return false;
+}
+
+bool StackingManagerNode::check_controllers_ready()
+{
+  RCLCPP_INFO(this->get_logger(), "Checking if controllers are ready...");
+
+  bool arm_ready = wait_for_arm_controller();
+  bool gripper_ready = wait_for_gripper_controller();
+
+  if (arm_ready && gripper_ready) {
+    RCLCPP_INFO(this->get_logger(), "All controllers are ready!");
+    return true;
+  } else {
+    RCLCPP_ERROR(this->get_logger(), "Not all controllers are ready: arm=%s, gripper=%s",
+                arm_ready ? "ready" : "not ready",
+                gripper_ready ? "ready" : "not ready");
+    return false;
+  }
 }
 
 } // namespace mycobot_stacking_project

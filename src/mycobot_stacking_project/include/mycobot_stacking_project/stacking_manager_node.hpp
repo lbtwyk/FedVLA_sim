@@ -14,9 +14,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/planning_scene_interface/planning_scene_interface.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <control_msgs/action/follow_joint_trajectory.hpp>
+#include <control_msgs/action/gripper_command.hpp>
 #include <memory>
 #include <string>
 #include <thread>
+#include <chrono>
 
 namespace mycobot_stacking_project
 {
@@ -105,6 +109,26 @@ private:
    * @return True if successful, false otherwise.
    */
   bool detach_cube(const std::string& object_id);
+
+  /**
+   * @brief Wait for the arm controller to become available.
+   * @param timeout_sec Timeout in seconds.
+   * @return True if the controller is available, false otherwise.
+   */
+  bool wait_for_arm_controller(double timeout_sec = 60.0);
+
+  /**
+   * @brief Wait for the gripper controller to become available.
+   * @param timeout_sec Timeout in seconds.
+   * @return True if the controller is available, false otherwise.
+   */
+  bool wait_for_gripper_controller(double timeout_sec = 60.0);
+
+  /**
+   * @brief Check if controllers are ready before starting the task.
+   * @return True if all controllers are ready, false otherwise.
+   */
+  bool check_controllers_ready();
 
   // Node for MoveGroup context
   std::shared_ptr<rclcpp::Node> node_for_movegroup_;

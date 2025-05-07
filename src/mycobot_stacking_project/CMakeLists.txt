@@ -13,6 +13,7 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(moveit_msgs REQUIRED)
@@ -23,6 +24,7 @@ find_package(tf2_eigen REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
+find_package(control_msgs REQUIRED)
 
 # Include directories
 include_directories(
@@ -62,12 +64,14 @@ add_executable(stacking_manager_node
 )
 ament_target_dependencies(stacking_manager_node
   rclcpp
+  rclcpp_action
   geometry_msgs
   moveit_msgs
   shape_msgs
   tf2_ros
   tf2_geometry_msgs
   moveit_ros_planning_interface
+  control_msgs
 )
 
 # Cube Spawner Node

@@ -1,6 +1,14 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, TimerAction, AppendEnvironmentVariable
+from launch.actions import (
+    IncludeLaunchDescription,
+    DeclareLaunchArgument,
+    TimerAction,
+    AppendEnvironmentVariable,
+    RegisterEventHandler,
+    ExecuteProcess
+)
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -40,9 +48,10 @@ def generate_launch_description():
     )
 
     # Find paths
-    world_path = PathJoinSubstitution([
-        pkg_mycobot_stacking_project, 'worlds', 'cube_stacking_world.world'
-    ])
+    world_path = os.path.join(
+        FindPackageShare('mycobot_stacking_project').find('mycobot_stacking_project'),
+        'worlds', 'cube_stacking_world.world'
+    )
     rviz_config_path = PathJoinSubstitution([
         pkg_mycobot_stacking_project, 'rviz', 'stacking_display.rviz'
     ])
@@ -107,8 +116,6 @@ def generate_launch_description():
     )
 
     # Application Node (Stacking Manager)
-    # Start this node after a delay to allow Gazebo and MoveIt to initialize
-    # A more robust way is to wait for specific services/topics, but TimerAction is simpler
     stacking_manager_node = Node(
         package='mycobot_stacking_project',
         executable='stacking_manager_node', # Use the C++ executable name
@@ -118,9 +125,58 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}]
     )
 
-    delayed_stacking_manager = TimerAction(
-        period=10.0, # Start after 10 seconds (adjust as needed)
-        actions=[stacking_manager_node]
+    # Load controllers in sequence
+    # First, load the joint state broadcaster
+    load_joint_state_broadcaster_cmd = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'joint_state_broadcaster'],
+        output='screen'
+    )
+
+    # Then, load the arm controller after joint state broadcaster is loaded
+    load_arm_controller_cmd = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'arm_controller'],
+        output='screen'
+    )
+
+    # Finally, load the gripper controller after arm controller is loaded
+    load_gripper_controller_cmd = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'gripper_action_controller'],
+        output='screen'
+    )
+
+    # Register event handlers for sequencing
+    # Launch the arm controller after joint state broadcaster is loaded
+    arm_controller_event_handler = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=load_joint_state_broadcaster_cmd,
+            on_exit=[load_arm_controller_cmd]
+        )
+    )
+
+    # Launch the gripper controller after arm controller is loaded
+    gripper_controller_event_handler = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=load_arm_controller_cmd,
+            on_exit=[load_gripper_controller_cmd]
+        )
+    )
+
+    # Launch the stacking manager after gripper controller is loaded
+    stacking_manager_event_handler = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=load_gripper_controller_cmd,
+            on_exit=[stacking_manager_node]
+        )
+    )
+
+    # Add a delay before starting the controller loading sequence
+    # to ensure Gazebo and MoveIt are fully initialized
+    delayed_controller_loading = TimerAction(
+        period=15.0,  # Start after 15 seconds
+        actions=[load_joint_state_broadcaster_cmd]
     )
 
     # Cube Spawner Node
@@ -140,5 +196,9 @@ def generate_launch_description():
         rviz_node,
         cube_detector_node,
         cube_spawner_node,
-        delayed_stacking_manager,
+        # Add the controller loading sequence with event handlers
+        delayed_controller_loading,
+        arm_controller_event_handler,
+        gripper_controller_event_handler,
+        stacking_manager_event_handler,
     ])

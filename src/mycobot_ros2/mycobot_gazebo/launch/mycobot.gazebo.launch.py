@@ -44,7 +44,7 @@ def generate_launch_description():
 
     default_robot_name = 'mycobot_280'
     gazebo_models_path = 'models'
-    default_world_file = 'pick_and_place_demo.world'
+    default_world_file = 'cube_stacking.world'
     gazebo_worlds_path = 'worlds'
 
     ros_gz_bridge_config_file_path = 'config/ros_gz_bridge.yaml'
