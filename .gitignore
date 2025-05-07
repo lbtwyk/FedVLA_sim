@@ -35,14 +35,18 @@ CMakeLists.txt.user
 *.pch
 
 # Compiled Dynamic libraries
-*.so
+# Don't ignore .so files in src directory (might be needed for specific libraries)
+/build/**/*.so
+/install/**/*.so
 *.dylib
 *.dll
 
 # Compiled Static libraries
 *.lai
 *.la
-*.a
+# Don't ignore .a files in src directory (might be needed for specific libraries)
+/build/**/*.a
+/install/**/*.a
 *.lib
 
 # Executables
@@ -54,17 +58,15 @@ CMakeLists.txt.user
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
+# Don't ignore .so files in src directory (might be needed for specific libraries)
+/build/**/*.so
+/install/**/*.so
 .Python
-env/
-build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -109,16 +111,24 @@ venv/
 ENV/
 
 # Bag files
-*.bag
-*.db3
+# Don't ignore bag files in src directory (might be needed for tests)
+/build/**/*.bag
+/install/**/*.bag
+/build/**/*.db3
+/install/**/*.db3
+/build/**/*.mcap
+/install/**/*.mcap
 
 # Custom message generation
 *__type_support.cpp
 *__rosidl_typesupport_*
 
 # PCL specific
-*.pcd
-*.ply
+# Don't ignore point cloud files in src directory (might be needed for tests)
+/build/**/*.pcd
+/install/**/*.pcd
+/build/**/*.ply
+/install/**/*.ply
 
 # Temporary files
 *.swp
