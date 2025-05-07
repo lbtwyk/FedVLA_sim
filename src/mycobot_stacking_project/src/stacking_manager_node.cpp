@@ -12,6 +12,7 @@
 #include "mycobot_stacking_project/stacking_manager_node.hpp"
 
 #include <moveit_msgs/msg/collision_object.hpp>
+#include <moveit_msgs/srv/get_planning_scene.hpp>
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -37,6 +38,31 @@ StackingManagerNode::StackingManagerNode(const rclcpp::NodeOptions & options)
 
   // Start executor in a separate thread
   std::thread([this]() { this->executor_->spin(); }).detach();
+
+  // Wait for the planning scene service to be available
+  RCLCPP_INFO(this->get_logger(), "Waiting for planning scene service to be available...");
+
+  // Create a client for the planning scene service
+  auto planning_scene_client = node_for_movegroup_->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
+
+  // Wait for the service to be available with a timeout
+  const int max_wait_seconds = 60;
+  auto start_time = this->now();
+  while (rclcpp::ok()) {
+    if (planning_scene_client->wait_for_service(std::chrono::seconds(1))) {
+      RCLCPP_INFO(this->get_logger(), "Planning scene service is available!");
+      break;
+    }
+
+    auto current_time = this->now();
+    if ((current_time - start_time).seconds() > max_wait_seconds) {
+      RCLCPP_WARN(this->get_logger(), "Timeout waiting for planning scene service after %d seconds. Continuing anyway...", max_wait_seconds);
+      break;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Waiting for planning scene service... (%.1f seconds elapsed)",
+               (current_time - start_time).seconds());
+  }
 
   // Initialize planning scene interface
   planning_scene_interface_ = std::make_shared<moveit::planning_interface::PlanningSceneInterface>();
@@ -95,14 +121,14 @@ void StackingManagerNode::execute_stacking_task()
   yellow_pre_grasp_pose.header.frame_id = "base_link";
   yellow_pre_grasp_pose.pose.position.x = yellow_cube_pose_.position.x;
   yellow_pre_grasp_pose.pose.position.y = yellow_cube_pose_.position.y;
-  yellow_pre_grasp_pose.pose.position.z = yellow_cube_pose_.position.z + APPROACH_DISTANCE + 0.05; // Add extra height
+  yellow_pre_grasp_pose.pose.position.z = yellow_cube_pose_.position.z + APPROACH_DISTANCE; // Approach from above
   yellow_pre_grasp_pose.pose.orientation = grasp_orientation_msg;
 
   // Yellow grasp pose
   geometry_msgs::msg::Pose yellow_grasp_pose;
   yellow_grasp_pose.position.x = yellow_cube_pose_.position.x;
   yellow_grasp_pose.position.y = yellow_cube_pose_.position.y;
-  yellow_grasp_pose.position.z = yellow_cube_pose_.position.z + CUBE_SIZE * 0.5 + 0.005; // Small offset
+  yellow_grasp_pose.position.z = yellow_cube_pose_.position.z + CUBE_SIZE * 0.5; // Position at center of cube
   yellow_grasp_pose.orientation = grasp_orientation_msg;
 
   // Lift pose
@@ -117,14 +143,14 @@ void StackingManagerNode::execute_stacking_task()
   orange_pre_place_pose.header.frame_id = "base_link";
   orange_pre_place_pose.pose.position.x = orange_cube_pose_.position.x;
   orange_pre_place_pose.pose.position.y = orange_cube_pose_.position.y;
-  orange_pre_place_pose.pose.position.z = orange_cube_pose_.position.z + CUBE_SIZE + APPROACH_DISTANCE;
+  orange_pre_place_pose.pose.position.z = orange_cube_pose_.position.z + CUBE_SIZE + APPROACH_DISTANCE * 0.5; // Approach from above
   orange_pre_place_pose.pose.orientation = grasp_orientation_msg;
 
   // Orange place pose
   geometry_msgs::msg::Pose orange_place_pose;
   orange_place_pose.position.x = orange_cube_pose_.position.x;
   orange_place_pose.position.y = orange_cube_pose_.position.y;
-  orange_place_pose.position.z = orange_cube_pose_.position.z + CUBE_SIZE + CUBE_SIZE * 0.5 + 0.005; // Small offset
+  orange_place_pose.position.z = orange_cube_pose_.position.z + CUBE_SIZE; // Position on top of the cube
   orange_place_pose.orientation = grasp_orientation_msg;
 
   // Execute sequence
@@ -169,7 +195,7 @@ void StackingManagerNode::execute_stacking_task()
   // Use a more robust approach for grasping the yellow cube
   // Instead of trying to go directly to the intermediate pose, use small incremental steps
   double start_z = yellow_pre_grasp_pose.pose.position.z;
-  double target_z = yellow_cube_pose_.position.z + CUBE_SIZE * 0.5 + 0.005; // Final grasp height
+  double target_z = yellow_cube_pose_.position.z + CUBE_SIZE * 0.5; // Final grasp height at center of cube
   double step_size = 0.02; // 2cm steps
 
   // Create a pose for incremental movement
@@ -257,7 +283,7 @@ void StackingManagerNode::execute_stacking_task()
 
   // Use the same incremental approach for placing the yellow cube on the orange cube
   double place_start_z = orange_pre_place_pose.pose.position.z;
-  double place_target_z = orange_cube_pose_.position.z + CUBE_SIZE + CUBE_SIZE * 0.5 + 0.005; // Final place height
+  double place_target_z = orange_cube_pose_.position.z + CUBE_SIZE; // Final place height on top of the cube
   double place_step_size = 0.02; // 2cm steps
 
   // Create a pose for incremental movement

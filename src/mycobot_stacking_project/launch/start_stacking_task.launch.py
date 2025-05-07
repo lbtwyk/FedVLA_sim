@@ -36,6 +36,7 @@ def generate_launch_description():
     pkg_mycobot_stacking_project = FindPackageShare('mycobot_stacking_project')
     pkg_mycobot_gazebo = FindPackageShare('mycobot_gazebo')
     pkg_mycobot_moveit_config = FindPackageShare('mycobot_moveit_config')
+    pkg_mycobot_mtc_pick_place_demo = FindPackageShare('mycobot_mtc_pick_place_demo')
 
     # Setup Gazebo model resource path for custom cube models
     models_path = PathJoinSubstitution([pkg_mycobot_stacking_project, 'models'])
@@ -81,6 +82,16 @@ def generate_launch_description():
         }.items()
     )
 
+    # Planning Scene Server launch
+    planning_scene_server_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([pkg_mycobot_mtc_pick_place_demo, 'launch', 'get_planning_scene_server.launch.py'])
+        ),
+        launch_arguments={
+            'use_sim_time': use_sim_time,
+        }.items()
+    )
+
     # RViz node
     rviz_node = Node(
         package='rviz2',
@@ -119,8 +130,9 @@ def generate_launch_description():
 
     # Add a delay before starting the stacking manager
     # to ensure Gazebo and MoveIt are fully initialized
+    # Increase the delay to give more time for the move_group to start
     delayed_stacking_manager = TimerAction(
-        period=30.0,  # Start after 30 seconds
+        period=45.0,  # Start after 45 seconds (increased from 30)
         actions=[stacking_manager_node]
     )
 
@@ -140,57 +152,17 @@ def generate_launch_description():
         actions=[cube_spawner_node]
     )
 
-    # Load controllers with a delay
-    load_joint_state_broadcaster = Node(
-        package='controller_manager',
-        executable='spawner',
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}],
-        arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
-    )
-
-    load_arm_controller = Node(
-        package='controller_manager',
-        executable='spawner',
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}],
-        arguments=['arm_controller', '--controller-manager', '/controller_manager'],
-    )
-
-    load_gripper_controller = Node(
-        package='controller_manager',
-        executable='spawner',
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}],
-        arguments=['gripper_action_controller', '--controller-manager', '/controller_manager'],
-    )
-
-    # Add delays for loading controllers
-    delayed_joint_state_broadcaster = TimerAction(
-        period=10.0,  # Start after 10 seconds
-        actions=[load_joint_state_broadcaster]
-    )
-
-    delayed_arm_controller = TimerAction(
-        period=15.0,  # Start after 15 seconds
-        actions=[load_arm_controller]
-    )
-
-    delayed_gripper_controller = TimerAction(
-        period=20.0,  # Start after 20 seconds
-        actions=[load_gripper_controller]
-    )
+    # Controllers are already loaded by mycobot.gazebo.launch.py
+    # which includes load_ros2_controllers.launch.py
+    # No need to load them again here
 
     return LaunchDescription(
         declared_arguments + [
         set_models_env,
         gazebo_launch,
         move_group_launch,
+        planning_scene_server_launch,  # Add the planning scene server
         rviz_node,
-        # Add controller loading with delays
-        delayed_joint_state_broadcaster,
-        delayed_arm_controller,
-        delayed_gripper_controller,
         # Add the cube spawner with a delay
         delayed_cube_spawner,
         # Add the stacking manager with a delay to ensure Gazebo and MoveIt are initialized
