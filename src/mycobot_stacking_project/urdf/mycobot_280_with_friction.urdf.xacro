@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mycobot_280_with_friction">
+    <!-- Include the original mycobot_280 description -->
+    <xacro:include filename="$(find mycobot_description)/urdf/robots/mycobot_280.urdf.xacro"/>
+    
+    <!-- Include our custom gripper friction properties -->
+    <xacro:include filename="$(find mycobot_stacking_project)/urdf/gripper_friction.urdf.xacro"/>
+    
+    <!-- Apply the friction properties to the gripper -->
+    <xacro:gripper_gazebo_friction prefix=""/>
+</robot>

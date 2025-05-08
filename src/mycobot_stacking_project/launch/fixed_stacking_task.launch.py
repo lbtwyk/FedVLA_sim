@@ -44,7 +44,6 @@ def generate_launch_description():
     log_level = LaunchConfiguration("log_level")
     robot_name = LaunchConfiguration("robot_name")
     pkg_mycobot_stacking_project = FindPackageShare('mycobot_stacking_project')
-    pkg_mycobot_gazebo = FindPackageShare('mycobot_gazebo')
     pkg_mycobot_moveit_config = FindPackageShare('mycobot_moveit_config')
     pkg_mycobot_mtc_pick_place_demo = FindPackageShare('mycobot_mtc_pick_place_demo')
 
@@ -66,18 +65,15 @@ def generate_launch_description():
 
     # --- Include other launch files ---
 
-    # Gazebo launch
+    # Gazebo launch with custom friction parameters
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([pkg_mycobot_gazebo, 'launch', 'mycobot.gazebo.launch.py'])
+            PathJoinSubstitution([pkg_mycobot_stacking_project, 'launch', 'mycobot_gazebo_with_friction.launch.py'])
         ),
         launch_arguments={
             'use_sim_time': use_sim_time,
-            'load_controllers': 'true', # Load controllers for interaction
-            'use_camera': 'true',       # Enable the camera
             'world_file': world_path,   # Correct argument name: world_file
-            'use_rviz': 'false',        # Explicitly disable RViz from Gazebo launch
-            'z': '0'                
+            'z': '0.001'
         }.items()
     )
 
@@ -188,7 +184,7 @@ def generate_launch_description():
     # Add a delay before starting the cube spawner
     # to ensure MoveIt is fully initialized
     delayed_cube_spawner = TimerAction(
-        period=15.0,  # Start after 15 seconds
+        period=5.0,  # Start after 5 seconds (reduced from 15)
         actions=[cube_spawner_node]
     )
 
@@ -204,9 +200,8 @@ def generate_launch_description():
 
     # Add a delay before starting the stacking manager
     # to ensure Gazebo and MoveIt are fully initialized
-    # Increase the delay to give more time for the move_group to start
     delayed_stacking_manager = TimerAction(
-        period=45.0,  # Start after 45 seconds (increased from 30)
+        period=15.0,  # Start after 15 seconds (reduced from 45)
         actions=[stacking_manager_node]
     )
 

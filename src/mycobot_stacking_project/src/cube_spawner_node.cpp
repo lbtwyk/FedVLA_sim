@@ -54,9 +54,9 @@ CubeSpawnerNode::CubeSpawnerNode(const rclcpp::NodeOptions & options)
 
   RCLCPP_INFO(this->get_logger(), "Planning scene service is available.");
 
-  // Create a timer to spawn cubes after a delay
+  // Create a timer to spawn cubes after a shorter delay
   timer_ = this->create_wall_timer(
-    5s, std::bind(&CubeSpawnerNode::timer_callback, this));
+    2s, std::bind(&CubeSpawnerNode::timer_callback, this));
 
   RCLCPP_INFO(this->get_logger(), "Cube Spawner Node initialized");
 }
