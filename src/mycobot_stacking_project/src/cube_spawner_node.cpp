@@ -63,7 +63,10 @@ CubeSpawnerNode::CubeSpawnerNode(const rclcpp::NodeOptions & options)
 
 void CubeSpawnerNode::timer_callback()
 {
-  RCLCPP_INFO(this->get_logger(), "Adding cubes to planning scene...");
+  RCLCPP_INFO(this->get_logger(), "Adding objects to planning scene...");
+
+  // Add the ground plane to the planning scene
+  spawn_ground_plane();
 
   // Add the yellow cube to the planning scene
   spawn_yellow_cube();
@@ -71,10 +74,10 @@ void CubeSpawnerNode::timer_callback()
   // Add the orange cube to the planning scene
   spawn_orange_cube();
 
-  // Cancel the timer after adding the cubes
+  // Cancel the timer after adding the objects
   timer_->cancel();
 
-  RCLCPP_INFO(this->get_logger(), "Cubes added to planning scene successfully");
+  RCLCPP_INFO(this->get_logger(), "Objects added to planning scene successfully");
 }
 
 void CubeSpawnerNode::spawn_yellow_cube()
@@ -86,7 +89,7 @@ void CubeSpawnerNode::spawn_yellow_cube()
 
   // Create a collision object for the yellow cube
   moveit_msgs::msg::CollisionObject yellow_cube;
-  yellow_cube.header.frame_id = "world";
+  yellow_cube.header.frame_id = "base_link";
   yellow_cube.id = "yellow_cube";
 
   // Define the cube dimensions
@@ -101,7 +104,7 @@ void CubeSpawnerNode::spawn_yellow_cube()
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.2;
   cube_pose.position.y = 0.15;
-  cube_pose.position.z = -0.025;  // Adjusted to match actual position in simulation
+  cube_pose.position.z = 0.0125;  // Half the height of the cube (0.025/2)
   cube_pose.orientation.w = 1.0;
 
   // Add the primitive and pose to the collision object
@@ -125,7 +128,7 @@ void CubeSpawnerNode::spawn_orange_cube()
 
   // Create a collision object for the orange cube
   moveit_msgs::msg::CollisionObject orange_cube;
-  orange_cube.header.frame_id = "world";
+  orange_cube.header.frame_id = "base_link";
   orange_cube.id = "orange_cube";
 
   // Define the cube dimensions
@@ -140,7 +143,7 @@ void CubeSpawnerNode::spawn_orange_cube()
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.35;
   cube_pose.position.y = 0.15;
-  cube_pose.position.z = -0.025;  // Adjusted to match actual position in simulation
+  cube_pose.position.z = 0.0125;  // Half the height of the cube (0.025/2)
   cube_pose.orientation.w = 1.0;
 
   // Add the primitive and pose to the collision object
@@ -153,6 +156,45 @@ void CubeSpawnerNode::spawn_orange_cube()
 
   RCLCPP_INFO(this->get_logger(), "Orange cube added to planning scene at position (%.2f, %.2f, %.2f)",
     cube_pose.position.x, cube_pose.position.y, cube_pose.position.z);
+}
+
+void CubeSpawnerNode::spawn_ground_plane()
+{
+  RCLCPP_INFO(this->get_logger(), "Adding ground plane to planning scene");
+
+  // Create a planning scene interface
+  moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+
+  // Create a collision object for the ground plane
+  moveit_msgs::msg::CollisionObject ground_plane;
+  ground_plane.header.frame_id = "base_link";
+  ground_plane.id = "ground_plane";
+
+  // Define the ground plane dimensions (large flat box)
+  shape_msgs::msg::SolidPrimitive primitive;
+  primitive.type = primitive.BOX;
+  primitive.dimensions.resize(3);
+  primitive.dimensions[0] = 2.0;  // x - 2 meters wide
+  primitive.dimensions[1] = 2.0;  // y - 2 meters long
+  primitive.dimensions[2] = 0.002; // z - 0.2 cm thick
+
+  // Define the ground plane pose
+  geometry_msgs::msg::Pose plane_pose;
+  plane_pose.position.x = 0.0;    // Centered at origin
+  plane_pose.position.y = 0.0;    // Centered at origin
+  plane_pose.position.z = -0.005; // Half the thickness below z=0
+  plane_pose.orientation.w = 1.0;
+
+  // Add the primitive and pose to the collision object
+  ground_plane.primitives.push_back(primitive);
+  ground_plane.primitive_poses.push_back(plane_pose);
+  ground_plane.operation = ground_plane.ADD;
+
+  // Add the collision object to the planning scene
+  planning_scene_interface.applyCollisionObject(ground_plane);
+
+  RCLCPP_INFO(this->get_logger(), "Ground plane added to planning scene at position (%.2f, %.2f, %.2f)",
+    plane_pose.position.x, plane_pose.position.y, plane_pose.position.z);
 }
 
 } // namespace mycobot_stacking_project

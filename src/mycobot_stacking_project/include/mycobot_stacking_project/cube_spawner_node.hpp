@@ -47,6 +47,11 @@ private:
   void spawn_orange_cube();
 
   /**
+   * @brief Spawn the ground plane in the simulation.
+   */
+  void spawn_ground_plane();
+
+  /**
    * @brief Timer callback for spawning cubes.
    */
   void timer_callback();

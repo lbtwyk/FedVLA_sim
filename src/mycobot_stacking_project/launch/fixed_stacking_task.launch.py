@@ -76,7 +76,8 @@ def generate_launch_description():
             'load_controllers': 'true', # Load controllers for interaction
             'use_camera': 'true',       # Enable the camera
             'world_file': world_path,   # Correct argument name: world_file
-            'use_rviz': 'false'         # Explicitly disable RViz from Gazebo launch
+            'use_rviz': 'false',        # Explicitly disable RViz from Gazebo launch
+            'z': '0'                
         }.items()
     )
 
