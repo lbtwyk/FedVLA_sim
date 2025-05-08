@@ -109,7 +109,8 @@ def generate_launch_description():
         executable='relay',
         name='planning_scene_remapper',
         arguments=['/get_planning_scene_mycobot', '/get_planning_scene'],
-        parameters=[{'use_sim_time': use_sim_time}]
+        parameters=[{'use_sim_time': use_sim_time}],
+        output='screen'  # Add output='screen' for better visibility
     )
 
     # Create a function to configure MoveIt and RViz

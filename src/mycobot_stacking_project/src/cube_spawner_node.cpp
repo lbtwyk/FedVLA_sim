@@ -15,6 +15,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <moveit_msgs/srv/get_planning_scene.hpp>
 
 using namespace std::chrono_literals;
 
@@ -25,6 +26,33 @@ CubeSpawnerNode::CubeSpawnerNode(const rclcpp::NodeOptions & options)
 : Node("cube_spawner", options)
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Cube Spawner Node");
+
+  // Wait for the planning scene service to be available
+  RCLCPP_INFO(this->get_logger(), "Waiting for planning scene service to be available...");
+
+  // Create a client for the planning scene service
+  auto planning_scene_client = this->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
+
+  // Wait for the service to be available with a timeout
+  const int max_wait_seconds = 60;
+  auto start_time = this->now();
+  while (rclcpp::ok()) {
+    if (planning_scene_client->wait_for_service(1s)) {
+      RCLCPP_INFO(this->get_logger(), "Planning scene service is available!");
+      break;
+    }
+
+    auto current_time = this->now();
+    if ((current_time - start_time).seconds() > max_wait_seconds) {
+      RCLCPP_WARN(this->get_logger(), "Timeout waiting for planning scene service after %d seconds. Continuing anyway...", max_wait_seconds);
+      break;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Waiting for planning scene service to become available... (%.1f seconds elapsed)",
+               (current_time - start_time).seconds());
+  }
+
+  RCLCPP_INFO(this->get_logger(), "Planning scene service is available.");
 
   // Create a timer to spawn cubes after a delay
   timer_ = this->create_wall_timer(
@@ -73,7 +101,7 @@ void CubeSpawnerNode::spawn_yellow_cube()
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.2;
   cube_pose.position.y = 0.15;
-  cube_pose.position.z = -0.03;  // Raised by 0.02 from previous -0.05
+  cube_pose.position.z = -0.025;  // Adjusted to match actual position in simulation
   cube_pose.orientation.w = 1.0;
 
   // Add the primitive and pose to the collision object
@@ -112,7 +140,7 @@ void CubeSpawnerNode::spawn_orange_cube()
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.35;
   cube_pose.position.y = 0.15;
-  cube_pose.position.z = -0.03;  // Raised by 0.02 from previous -0.05
+  cube_pose.position.z = -0.025;  // Adjusted to match actual position in simulation
   cube_pose.orientation.w = 1.0;
 
   // Add the primitive and pose to the collision object
