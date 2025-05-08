@@ -65,15 +65,15 @@ void CubeSpawnerNode::spawn_yellow_cube()
   shape_msgs::msg::SolidPrimitive primitive;
   primitive.type = primitive.BOX;
   primitive.dimensions.resize(3);
-  primitive.dimensions[0] = 0.04; // x
-  primitive.dimensions[1] = 0.04; // y
-  primitive.dimensions[2] = 0.04; // z
+  primitive.dimensions[0] = 0.025; // x
+  primitive.dimensions[1] = 0.025; // y
+  primitive.dimensions[2] = 0.025; // z
 
-  // Define the cube pose - same as in the Gazebo world
+  // Define the cube pose - adjusted for the planning scene
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.2;
   cube_pose.position.y = 0.15;
-  cube_pose.position.z = 0.05;
+  cube_pose.position.z = -0.03;  // Raised by 0.02 from previous -0.05
   cube_pose.orientation.w = 1.0;
 
   // Add the primitive and pose to the collision object
@@ -104,15 +104,15 @@ void CubeSpawnerNode::spawn_orange_cube()
   shape_msgs::msg::SolidPrimitive primitive;
   primitive.type = primitive.BOX;
   primitive.dimensions.resize(3);
-  primitive.dimensions[0] = 0.04; // x
-  primitive.dimensions[1] = 0.04; // y
-  primitive.dimensions[2] = 0.04; // z
+  primitive.dimensions[0] = 0.025; // x
+  primitive.dimensions[1] = 0.025; // y
+  primitive.dimensions[2] = 0.025; // z
 
-  // Define the cube pose - same as in the Gazebo world
+  // Define the cube pose - adjusted for the planning scene
   geometry_msgs::msg::Pose cube_pose;
   cube_pose.position.x = 0.35;
   cube_pose.position.y = 0.15;
-  cube_pose.position.z = 0.05;
+  cube_pose.position.z = -0.03;  // Raised by 0.02 from previous -0.05
   cube_pose.orientation.w = 1.0;
 
   // Add the primitive and pose to the collision object

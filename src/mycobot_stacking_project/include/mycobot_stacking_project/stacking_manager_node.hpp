@@ -53,7 +53,7 @@ private:
   static constexpr const char* ORANGE_CUBE_ID = "orange_cube";
   static constexpr double APPROACH_DISTANCE = 0.10;
   static constexpr double LIFT_DISTANCE = 0.08;
-  static constexpr double CUBE_SIZE = 0.04;
+  static constexpr double CUBE_SIZE = 0.025;
 
   /**
    * @brief Execute the stacking task.

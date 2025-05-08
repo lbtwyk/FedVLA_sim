@@ -75,7 +75,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'load_controllers': 'true', # Load controllers for interaction
             'use_camera': 'true',       # Enable the camera
-            'world_file': world_path,        # Correct argument name: world_file
+            'world_file': world_path,   # Correct argument name: world_file
             'use_rviz': 'false'         # Explicitly disable RViz from Gazebo launch
         }.items()
     )
@@ -165,7 +165,6 @@ def generate_launch_description():
                 moveit_config.joint_limits,
                 {'use_sim_time': use_sim_time}
             ],
-            # respawn=True, # Optional: restart RViz if it crashes
         )
 
         return [rviz_node_configured]
@@ -175,18 +174,21 @@ def generate_launch_description():
 
     # --- Nodes for this project ---
 
-    # Perception Node - Commented out as we're using direct cube spawning instead
-    # cube_detector_node = Node(
-    #     package='mycobot_stacking_project',
-    #     executable='cube_detector_node', # Use the C++ executable name
-    #     name='cube_detector',
-    #     output='screen',
-    #     arguments=["--ros-args", "--log-level", log_level],
-    #     parameters=[
-    #         {'use_sim_time': use_sim_time},
-    #         cube_detector_params_path
-    #     ]
-    # )
+    # Cube Spawner Node - Using direct cube spawning instead of perception
+    cube_spawner_node = Node(
+        package='mycobot_stacking_project',
+        executable='cube_spawner_node',
+        name='cube_spawner',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+
+    # Add a delay before starting the cube spawner
+    # to ensure MoveIt is fully initialized
+    delayed_cube_spawner = TimerAction(
+        period=15.0,  # Start after 15 seconds
+        actions=[cube_spawner_node]
+    )
 
     # Application Node (Stacking Manager)
     stacking_manager_node = Node(
@@ -205,26 +207,6 @@ def generate_launch_description():
         period=45.0,  # Start after 45 seconds (increased from 30)
         actions=[stacking_manager_node]
     )
-
-    # Cube Spawner Node - Using direct cube spawning instead of perception
-    cube_spawner_node = Node(
-        package='mycobot_stacking_project',
-        executable='cube_spawner_node',
-        name='cube_spawner',
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}]
-    )
-
-    # Add a delay before starting the cube spawner
-    # to ensure MoveIt is fully initialized
-    delayed_cube_spawner = TimerAction(
-        period=15.0,  # Start after 15 seconds
-        actions=[cube_spawner_node]
-    )
-
-    # Controllers are already loaded by mycobot.gazebo.launch.py
-    # which includes load_ros2_controllers.launch.py
-    # No need to load them again here
 
     return LaunchDescription(
         declared_arguments + [

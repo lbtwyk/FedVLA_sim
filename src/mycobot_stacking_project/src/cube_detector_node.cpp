@@ -40,7 +40,7 @@ CubeDetectorNode::CubeDetectorNode(const rclcpp::NodeOptions & options)
   this->declare_parameter<double>("cluster_tolerance", 0.02);
   this->declare_parameter<int>("min_cluster_points", 100);
   this->declare_parameter<int>("max_cluster_points", 10000);
-  this->declare_parameter<double>("target_cube_size", 0.04);
+  this->declare_parameter<double>("target_cube_size", 0.025);
   this->declare_parameter<double>("size_tolerance", 0.01);
 
   // Yellow color range (RGB values 0-1)

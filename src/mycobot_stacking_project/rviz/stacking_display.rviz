@@ -62,14 +62,14 @@ Visualization Manager:
     - Alpha: 0.800000011920929
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
-      Description File: /robot_description
+      Description File: robot_description
       Description Source: Topic
       Description Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
+        Value: robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -447,7 +447,7 @@ Visualization Manager:
         Start State Alpha: 1
         Start State Color: 0; 255; 0
       Planning Scene Topic: /monitored_planning_scene
-      Robot Description: /robot_description
+      Robot Description: robot_description
       Scene Geometry:
         Scene Alpha: 0.8999999761581421
         Scene Color: 50; 230; 50

@@ -23,7 +23,7 @@ class StackingManagerNode(Node):
 
     YELLOW_CUBE_ID = "yellow_cube"
     ORANGE_CUBE_ID = "orange_cube"
-    CUBE_SIZE = 0.04
+    CUBE_SIZE = 0.025
 
     APPROACH_DISTANCE = 0.10 # Z-offset for pre-grasp/pre-place
     LIFT_DISTANCE = 0.08     # Z-offset for lifting after grasp
@@ -311,7 +311,7 @@ class StackingManagerNode(Node):
             self.get_logger().error('Failed to detect cubes. Aborting task.')
             return
 
-        # --- Define Target Poses relative to base_link --- 
+        # --- Define Target Poses relative to base_link ---
         # (Assuming perception node provides poses in base_link)
         base_frame = "base_link" # Expect poses here
 
@@ -378,7 +378,7 @@ class StackingManagerNode(Node):
             orientation=grasp_orientation
         )
 
-        # --- Execute Sequence --- 
+        # --- Execute Sequence ---
         success = True
 
         # Go home
@@ -476,4 +476,4 @@ def main(args=None):
     # rclpy.shutdown() # Shutdown should ideally happen outside if multiple nodes run
 
 if __name__ == '__main__':
-    main() 
+    main()

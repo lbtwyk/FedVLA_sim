@@ -6,7 +6,7 @@ cube_detector:
     cluster_tolerance: 0.08  # Significantly increased to be more tolerant
     min_cluster_points: 10  # Reduced to detect smaller clusters
     max_cluster_points: 50000  # Increased to handle larger clusters
-    target_cube_size: 0.04
+    target_cube_size: 0.025
     size_tolerance: 0.1  # Increased tolerance but not too extreme
 
     # Yellow color range (RGB values 0-1) - Adjusted for black cubes in simulation

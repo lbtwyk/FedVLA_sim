@@ -18,25 +18,25 @@ gz service -s /world/cube_stacking_world/create \
 '<inertial>'\
 '<mass>0.1</mass>'\
 '<inertia>'\
-'<ixx>2.6666e-5</ixx>'\
+'<ixx>1.0417e-5</ixx>'\
 '<ixy>0</ixy>'\
 '<ixz>0</ixz>'\
-'<iyy>2.6666e-5</iyy>'\
+'<iyy>1.0417e-5</iyy>'\
 '<iyz>0</iyz>'\
-'<izz>2.6666e-5</izz>'\
+'<izz>1.0417e-5</izz>'\
 '</inertia>'\
 '</inertial>'\
 '<collision name="collision">'\
 '<geometry>'\
 '<box>'\
-'<size>0.04 0.04 0.04</size>'\
+'<size>0.025 0.025 0.025</size>'\
 '</box>'\
 '</geometry>'\
 '</collision>'\
 '<visual name="visual">'\
 '<geometry>'\
 '<box>'\
-'<size>0.04 0.04 0.04</size>'\
+'<size>0.025 0.025 0.025</size>'\
 '</box>'\
 '</geometry>'\
 '<material>'\
@@ -64,25 +64,25 @@ gz service -s /world/cube_stacking_world/create \
 '<inertial>'\
 '<mass>0.1</mass>'\
 '<inertia>'\
-'<ixx>2.6666e-5</ixx>'\
+'<ixx>1.0417e-5</ixx>'\
 '<ixy>0</ixy>'\
 '<ixz>0</ixz>'\
-'<iyy>2.6666e-5</iyy>'\
+'<iyy>1.0417e-5</iyy>'\
 '<iyz>0</iyz>'\
-'<izz>2.6666e-5</izz>'\
+'<izz>1.0417e-5</izz>'\
 '</inertia>'\
 '</inertial>'\
 '<collision name="collision">'\
 '<geometry>'\
 '<box>'\
-'<size>0.04 0.04 0.04</size>'\
+'<size>0.025 0.025 0.025</size>'\
 '</box>'\
 '</geometry>'\
 '</collision>'\
 '<visual name="visual">'\
 '<geometry>'\
 '<box>'\
-'<size>0.04 0.04 0.04</size>'\
+'<size>0.025 0.025 0.025</size>'\
 '</box>'\
 '</geometry>'\
 '<material>'\

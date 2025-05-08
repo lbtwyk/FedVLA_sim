@@ -121,7 +121,7 @@ void StackingManagerNode::execute_stacking_task()
   yellow_pre_grasp_pose.header.frame_id = "base_link";
   yellow_pre_grasp_pose.pose.position.x = yellow_cube_pose_.position.x;
   yellow_pre_grasp_pose.pose.position.y = yellow_cube_pose_.position.y;
-  yellow_pre_grasp_pose.pose.position.z = yellow_cube_pose_.position.z + APPROACH_DISTANCE; // Approach from above
+  yellow_pre_grasp_pose.pose.position.z = yellow_cube_pose_.position.z + APPROACH_DISTANCE + 0.1; // Approach from above with additional height
   yellow_pre_grasp_pose.pose.orientation = grasp_orientation_msg;
 
   // Yellow grasp pose
@@ -143,7 +143,7 @@ void StackingManagerNode::execute_stacking_task()
   orange_pre_place_pose.header.frame_id = "base_link";
   orange_pre_place_pose.pose.position.x = orange_cube_pose_.position.x;
   orange_pre_place_pose.pose.position.y = orange_cube_pose_.position.y;
-  orange_pre_place_pose.pose.position.z = orange_cube_pose_.position.z + CUBE_SIZE + APPROACH_DISTANCE * 0.5; // Approach from above
+  orange_pre_place_pose.pose.position.z = orange_cube_pose_.position.z + CUBE_SIZE + APPROACH_DISTANCE * 0.5 + 0.02; // Approach from above with additional height
   orange_pre_place_pose.pose.orientation = grasp_orientation_msg;
 
   // Orange place pose
