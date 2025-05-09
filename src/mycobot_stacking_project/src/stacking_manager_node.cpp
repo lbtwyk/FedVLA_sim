@@ -128,42 +128,55 @@ void StackingManagerNode::execute_stacking_task()
   RCLCPP_INFO(this->get_logger(), "Orange cube detected at [%.3f, %.3f, %.3f]",
              orange_cube_pose_.position.x, orange_cube_pose_.position.y, orange_cube_pose_.position.z);
 
-  // Yellow pre-grasp pose - use a higher approach with hardcoded Z value
+  // Yellow pre-grasp pose
   geometry_msgs::msg::PoseStamped yellow_pre_grasp_pose;
   yellow_pre_grasp_pose.header.frame_id = "base_link";
   yellow_pre_grasp_pose.pose.position.x = yellow_cube_pose_.position.x;
   yellow_pre_grasp_pose.pose.position.y = yellow_cube_pose_.position.y;
-  yellow_pre_grasp_pose.pose.position.z = 0.15; // Hardcoded safe height (15cm above ground)
+  yellow_pre_grasp_pose.pose.position.z = 0.15; // 15cm above ground
   yellow_pre_grasp_pose.pose.orientation = grasp_orientation_msg;
 
-  // Yellow grasp pose - use a hardcoded Z value that's safe for grasping
-  geometry_msgs::msg::Pose yellow_grasp_pose;
-  yellow_grasp_pose.position.x = yellow_cube_pose_.position.x;
-  yellow_grasp_pose.position.y = yellow_cube_pose_.position.y;
-  yellow_grasp_pose.position.z = 0.11; // Hardcoded grasp height (10cm above ground)
-  yellow_grasp_pose.orientation = grasp_orientation_msg;
+  // Yellow grasp pose
+  geometry_msgs::msg::PoseStamped yellow_grasp_pose;
+  yellow_grasp_pose.header.frame_id = "base_link";
+  yellow_grasp_pose.pose.position.x = yellow_cube_pose_.position.x;
+  yellow_grasp_pose.pose.position.y = yellow_cube_pose_.position.y;
+  yellow_grasp_pose.pose.position.z = 0.11; // 11cm above ground for grasping
+  yellow_grasp_pose.pose.orientation = grasp_orientation_msg;
 
-  // Lift pose - use a hardcoded Z value for lifting
-  geometry_msgs::msg::Pose lift_pose;
-  lift_pose.position.x = yellow_grasp_pose.position.x;
-  lift_pose.position.y = yellow_grasp_pose.position.y;
-  lift_pose.position.z = 0.15; // Hardcoded lift height (15cm above ground)
-  lift_pose.orientation = grasp_orientation_msg;
+  // Lift pose
+  geometry_msgs::msg::PoseStamped lift_pose;
+  lift_pose.header.frame_id = "base_link";
+  lift_pose.pose.position.x = yellow_cube_pose_.position.x;
+  lift_pose.pose.position.y = yellow_cube_pose_.position.y;
+  lift_pose.pose.position.z = 0.15; // 15cm above ground
+  lift_pose.pose.orientation = grasp_orientation_msg;
 
-  // Orange pre-place pose - use a hardcoded Z value
+  // Orange pre-place pose
   geometry_msgs::msg::PoseStamped orange_pre_place_pose;
   orange_pre_place_pose.header.frame_id = "base_link";
   orange_pre_place_pose.pose.position.x = orange_cube_pose_.position.x;
   orange_pre_place_pose.pose.position.y = orange_cube_pose_.position.y;
-  orange_pre_place_pose.pose.position.z = 0.15; // Hardcoded safe height (15cm above ground)
+  orange_pre_place_pose.pose.position.z = 0.15; // 15cm above ground
   orange_pre_place_pose.pose.orientation = grasp_orientation_msg;
 
-  // Orange place pose - use a hardcoded Z value for placing
-  geometry_msgs::msg::Pose orange_place_pose;
-  orange_place_pose.position.x = orange_cube_pose_.position.x;
-  orange_place_pose.position.y = orange_cube_pose_.position.y;
-  orange_place_pose.position.z = 0.05; // Hardcoded place height (5cm above ground)
-  orange_place_pose.orientation = grasp_orientation_msg;
+  RCLCPP_INFO(this->get_logger(), "Orange pre-place pose set to [%.3f, %.3f, %.3f]",
+             orange_pre_place_pose.pose.position.x,
+             orange_pre_place_pose.pose.position.y,
+             orange_pre_place_pose.pose.position.z);
+
+  // Orange place pose
+  geometry_msgs::msg::PoseStamped orange_place_pose;
+  orange_place_pose.header.frame_id = "base_link";
+  orange_place_pose.pose.position.x = orange_cube_pose_.position.x;
+  orange_place_pose.pose.position.y = orange_cube_pose_.position.y;
+  orange_place_pose.pose.position.z = 0.14; // 15cm above ground
+  orange_place_pose.pose.orientation = grasp_orientation_msg;
+
+  RCLCPP_INFO(this->get_logger(), "Orange place pose set to [%.3f, %.3f, %.3f]",
+             orange_place_pose.pose.position.x,
+             orange_place_pose.pose.position.y,
+             orange_place_pose.pose.position.z);
 
   // Execute sequence
   bool success = true;
@@ -182,49 +195,15 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Move to yellow pre-grasp using a safer approach with hardcoded position
-  // First, move to a position above the cube
-  geometry_msgs::msg::PoseStamped safe_approach_pose;
-  safe_approach_pose.header.frame_id = "base_link";
-  safe_approach_pose.pose.position.x = 0.2;  // Fixed position in front of the robot
-  safe_approach_pose.pose.position.y = 0.15;  // Centered
-  safe_approach_pose.pose.position.z = 0.2; // Increased safe height to 20cm
-  safe_approach_pose.pose.orientation = grasp_orientation_msg;
-
-  success &= go_to_pose(safe_approach_pose, "Move to Safe Approach Position");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to safe approach position. Aborting task.");
-    return;
-  }
-
-  // Now move to the yellow pre-grasp position
+  // Move to the yellow pre-grasp position
   success &= go_to_pose(yellow_pre_grasp_pose, "Move to Yellow Pre-Grasp");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move to yellow pre-grasp. Aborting task.");
     return;
   }
 
-  // Use a simplified approach with hardcoded positions for grasping the yellow cube
-  RCLCPP_INFO(this->get_logger(), "Starting approach to yellow cube using hardcoded positions");
-
-  // Create a pose for the intermediate approach position
-  geometry_msgs::msg::PoseStamped intermediate_pose = yellow_pre_grasp_pose;
-  intermediate_pose.pose.position.z = 0.1; // Hardcoded intermediate height (10cm)
-
-  // Move to the intermediate position
-  success &= go_to_pose(intermediate_pose, "Move to Intermediate Position (10cm)");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to intermediate position. Aborting task.");
-    return;
-  }
-
-  // Create a pose for the final grasp position
-  geometry_msgs::msg::PoseStamped grasp_pose_stamped;
-  grasp_pose_stamped.header.frame_id = "base_link";
-  grasp_pose_stamped.pose = yellow_grasp_pose;
-
   // Move to the grasp position
-  success &= go_to_pose(grasp_pose_stamped, "Move to Grasp Position (5cm)");
+  success &= go_to_pose(yellow_grasp_pose, "Move to Grasp Position");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move to grasp position. Aborting task.");
     return;
@@ -240,8 +219,8 @@ void StackingManagerNode::execute_stacking_task()
   }
 
   // Allow gripper to close - increase delay to ensure it's fully closed
-  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to close completely (3 seconds)...");
-  std::this_thread::sleep_for(std::chrono::seconds(3));
+  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to close completely (1 seconds)...");
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
   // Verify the gripper is closed enough to grasp the cube
   std::vector<double> gripper_joint_values = gripper_group_->getCurrentJointValues();
@@ -277,88 +256,40 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Lift yellow cube using regular motion planning instead of Cartesian path
-  geometry_msgs::msg::PoseStamped lift_pose_stamped;
-  lift_pose_stamped.header.frame_id = "base_link";
-  lift_pose_stamped.pose = lift_pose;
-
-  success &= go_to_pose(lift_pose_stamped, "Lift Yellow Cube");
+  // Lift yellow cube
+  success &= go_to_pose(lift_pose, "Lift Yellow Cube");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to lift yellow cube. Aborting task.");
     return;
   }
 
-  // Move to orange pre-place using a safer approach with hardcoded positions
-  // First, move to a higher position to avoid collisions
-  geometry_msgs::msg::PoseStamped high_safe_pose;
-  high_safe_pose.header.frame_id = "base_link";
-  high_safe_pose.pose.position.x = 0.2;  // Current position
-  high_safe_pose.pose.position.y = 0.15; // Current position
-  high_safe_pose.pose.position.z = 0.1;  // Higher safe height (10cm)
-  high_safe_pose.pose.orientation = grasp_orientation_msg;
+  // Temporarily increase planning time and attempts for this challenging move
+  arm_group_->setPlanningTime(30.0);  // Increase planning time to 30 seconds
+  arm_group_->setNumPlanningAttempts(20);  // Increase planning attempts to 20
 
-  success &= go_to_pose(high_safe_pose, "Move to Higher Safe Position");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to higher safe position. Aborting task.");
-    return;
-  }
-
-  // Then move to a position between the cubes
-  geometry_msgs::msg::PoseStamped intermediate_safe_pose;
-  intermediate_safe_pose.header.frame_id = "base_link";
-  intermediate_safe_pose.pose.position.x = 0.275;  // Position between yellow and orange cube
-  intermediate_safe_pose.pose.position.y = 0.15;   // Same Y as cubes
-  intermediate_safe_pose.pose.position.z = 0.1;    // Safe height (10cm)
-  intermediate_safe_pose.pose.orientation = grasp_orientation_msg;
-
-  success &= go_to_pose(intermediate_safe_pose, "Move to Intermediate Safe Position");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to intermediate safe position. Aborting task.");
-    return;
-  }
-
-  // Finally move to a position above the orange cube
-  geometry_msgs::msg::PoseStamped safe_place_pose;
-  safe_place_pose.header.frame_id = "base_link";
-  safe_place_pose.pose.position.x = orange_cube_pose_.position.x;  // Above orange cube
-  safe_place_pose.pose.position.y = orange_cube_pose_.position.y;  // Above orange cube
-  safe_place_pose.pose.position.z = 0.10; // Safe height (10cm)
-  safe_place_pose.pose.orientation = grasp_orientation_msg;
-
-  success &= go_to_pose(safe_place_pose, "Move to Safe Place Position");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to safe place position. Aborting task.");
-    return;
-  }
-
-  // Now move to the orange pre-place position
+  // Move directly to the orange pre-place position
   success &= go_to_pose(orange_pre_place_pose, "Move to Orange Pre-Place");
+
+  // Reset planning parameters to normal values
+  arm_group_->setPlanningTime(15.0);
+  arm_group_->setNumPlanningAttempts(10);
+
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move to orange pre-place. Aborting task.");
     return;
   }
 
-  // Use a simplified approach with hardcoded positions for placing the cube
-  RCLCPP_INFO(this->get_logger(), "Starting approach to place position using hardcoded positions");
+  // Temporarily increase planning time and attempts for this challenging move
+  arm_group_->setPlanningTime(30.0);  // Increase planning time to 30 seconds
+  arm_group_->setNumPlanningAttempts(20);  // Increase planning attempts to 20
 
-  // Create a pose for the intermediate place position
-  geometry_msgs::msg::PoseStamped intermediate_place_pose = orange_pre_place_pose;
-  intermediate_place_pose.pose.position.z = 0.1; // Hardcoded intermediate height (10cm)
+  // Move directly to the place position
+  success &= go_to_pose(orange_place_pose, "Move to Place Position");
 
-  // Move to the intermediate position
-  success &= go_to_pose(intermediate_place_pose, "Move to Intermediate Place Position (10cm)");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to intermediate place position. Aborting task.");
-    return;
-  }
+  // Reset planning parameters to normal values
+  arm_group_->setPlanningTime(15.0);
+  arm_group_->setNumPlanningAttempts(10);
 
-  // Create a pose for the final place position
-  geometry_msgs::msg::PoseStamped place_pose_stamped;
-  place_pose_stamped.header.frame_id = "base_link";
-  place_pose_stamped.pose = orange_place_pose;
-
-  // Move to the place position
-  success &= go_to_pose(place_pose_stamped, "Move to Place Position (5cm)");
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move to place position. Aborting task.");
     return;
@@ -374,8 +305,8 @@ void StackingManagerNode::execute_stacking_task()
   }
 
   // Allow gripper to open - increase delay to ensure it's fully opened
-  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to open completely (3 seconds)...");
-  std::this_thread::sleep_for(std::chrono::seconds(3));
+  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to open completely (1 seconds)...");
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
   // Detach yellow cube
   success &= detach_cube(YELLOW_CUBE_ID);
@@ -384,32 +315,52 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Move back to orange pre-place using regular motion planning instead of Cartesian path
+  // Force a planning scene update to clear any stale collision data
+  moveit_msgs::msg::PlanningScene planning_scene;
+  planning_scene.is_diff = true;
+  planning_scene.robot_state.is_diff = true;
+
+  // Create a publisher to update the planning scene
+  auto planning_scene_diff_publisher =
+    node_for_movegroup_->create_publisher<moveit_msgs::msg::PlanningScene>("/planning_scene", 1);
+
+  // Publish a few times to ensure the message is received
+  for (int i = 0; i < 3; ++i) {
+    planning_scene_diff_publisher->publish(planning_scene);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  // Move back to orange pre-place position
+  orange_pre_place_pose.pose.position.z = 0.2; // Ensure we're using a higher Z value
+
+  // Temporarily increase planning time and attempts for this challenging move
+  arm_group_->setPlanningTime(30.0);  // Increase planning time to 30 seconds
+  arm_group_->setNumPlanningAttempts(20);  // Increase planning attempts to 20
+
   success &= go_to_pose(orange_pre_place_pose, "Move back to Orange Pre-Place");
+
+  // Reset planning parameters to normal values
+  arm_group_->setPlanningTime(15.0);
+  arm_group_->setNumPlanningAttempts(10);
+
   if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move back to orange pre-place. Aborting task.");
-    return;
+    RCLCPP_ERROR(this->get_logger(), "Failed to move back to orange pre-place. Continuing to home position.");
   }
 
-  // Move to safe position before going home with hardcoded position
-  geometry_msgs::msg::PoseStamped safe_return_pose;
-  safe_return_pose.header.frame_id = "base_link";
-  safe_return_pose.pose.position.x = 0.2;  // Fixed position in front of the robot
-  safe_return_pose.pose.position.y = 0.15;  // Centered
-  safe_return_pose.pose.position.z = 0.1; // Increased safe height to 30cm
-  safe_return_pose.pose.orientation = grasp_orientation_msg;
+  // Go home with increased planning time
+  arm_group_->setPlanningTime(30.0);  // Increase planning time to 30 seconds
+  arm_group_->setNumPlanningAttempts(20);  // Increase planning attempts to 20
 
-  success &= go_to_pose(safe_return_pose, "Move to Safe Return Position");
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to safe return position. Aborting task.");
-    return;
-  }
+  RCLCPP_INFO(this->get_logger(), "Attempting to go home with increased planning time (30s) and attempts (20)");
 
-  // Go home
   success &= go_to_named_state("home");
+
+  // Reset planning parameters to normal values
+  arm_group_->setPlanningTime(15.0);
+  arm_group_->setNumPlanningAttempts(10);
+
   if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to go home. Aborting task.");
-    return;
+    RCLCPP_ERROR(this->get_logger(), "Failed to go home. Task completed but robot not in home position.");
   }
 
   RCLCPP_INFO(this->get_logger(), "Cube stacking task completed successfully");
@@ -626,19 +577,30 @@ bool StackingManagerNode::go_to_pose(const geometry_msgs::msg::PoseStamped& targ
     RCLCPP_INFO(this->get_logger(), "Using default position tolerance of 1cm and orientation tolerance of 0.57 degrees");
   }
 
+  // No special handling for different move types
+
   RCLCPP_INFO(this->get_logger(), "Setting pose target and planning...");
   arm_group_->setPoseTarget(target_pose);
 
+  // Record planning start time for performance measurement
+  auto planning_start_time = this->now();
+
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   bool success = static_cast<bool>(arm_group_->plan(plan));
+
+  // Calculate planning time
+  auto planning_end_time = this->now();
+  double planning_time = (planning_end_time - planning_start_time).seconds();
+  RCLCPP_INFO(this->get_logger(), "time taken to generate plan: %.7f seconds", planning_time);
 
   if (!success) {
     if (allow_collision) {
       RCLCPP_WARN(this->get_logger(), "Failed to plan %s, but continuing due to expected collision", description.c_str());
       return true;  // Continue with the task despite planning failure
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Failed to plan %s", description.c_str());
+      return false;
     }
-    RCLCPP_ERROR(this->get_logger(), "Failed to plan %s", description.c_str());
-    return false;
   }
 
   RCLCPP_INFO(this->get_logger(), "Planning successful, executing movement...");
@@ -724,6 +686,8 @@ bool StackingManagerNode::go_to_pose(const geometry_msgs::msg::PoseStamped& targ
         RCLCPP_ERROR(this->get_logger(), "Detailed error: Unknown error code");
         break;
     }
+
+    // No special handling for different move types
 
     return false;
   }
@@ -972,6 +936,29 @@ bool StackingManagerNode::detach_cube(const std::string& object_id)
   RCLCPP_INFO(this->get_logger(), "Detaching object '%s' from end effector", object_id.c_str());
 
   arm_group_->detachObject(object_id);
+
+  // Wait a moment for the planning scene to update
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+  // Force planning scene update
+  moveit_msgs::msg::PlanningScene planning_scene;
+  planning_scene.is_diff = true;
+  planning_scene.robot_state.is_diff = true;
+
+  // Publish the planning scene update
+  moveit_msgs::msg::PlanningSceneWorld world;
+  planning_scene.world = world;
+  planning_scene.robot_state.attached_collision_objects.clear();
+
+  // Create a publisher to update the planning scene
+  auto planning_scene_diff_publisher =
+    node_for_movegroup_->create_publisher<moveit_msgs::msg::PlanningScene>("/planning_scene", 1);
+
+  // Publish a few times to ensure the message is received
+  for (int i = 0; i < 3; ++i) {
+    planning_scene_diff_publisher->publish(planning_scene);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
 
   RCLCPP_INFO(this->get_logger(), "Successfully detached object '%s'", object_id.c_str());
   return true;
