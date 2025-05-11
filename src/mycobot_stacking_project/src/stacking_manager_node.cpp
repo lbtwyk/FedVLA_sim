@@ -132,7 +132,7 @@ void StackingManagerNode::execute_stacking_task()
   geometry_msgs::msg::PoseStamped yellow_pre_grasp_pose;
   yellow_pre_grasp_pose.header.frame_id = "base_link";
   yellow_pre_grasp_pose.pose.position.x = yellow_cube_pose_.position.x;
-  yellow_pre_grasp_pose.pose.position.y = yellow_cube_pose_.position.y;
+  yellow_pre_grasp_pose.pose.position.y = yellow_cube_pose_.position.y - 0.01; // Adjust y position by -0.01 to fix gripper offset
   yellow_pre_grasp_pose.pose.position.z = 0.15; // 15cm above ground
   yellow_pre_grasp_pose.pose.orientation = grasp_orientation_msg;
 
@@ -140,7 +140,7 @@ void StackingManagerNode::execute_stacking_task()
   geometry_msgs::msg::PoseStamped yellow_grasp_pose;
   yellow_grasp_pose.header.frame_id = "base_link";
   yellow_grasp_pose.pose.position.x = yellow_cube_pose_.position.x;
-  yellow_grasp_pose.pose.position.y = yellow_cube_pose_.position.y;
+  yellow_grasp_pose.pose.position.y = yellow_cube_pose_.position.y - 0.01; // Adjust y position by -0.01 to fix gripper offset
   yellow_grasp_pose.pose.position.z = 0.11; // 11cm above ground for grasping
   yellow_grasp_pose.pose.orientation = grasp_orientation_msg;
 
@@ -148,7 +148,7 @@ void StackingManagerNode::execute_stacking_task()
   geometry_msgs::msg::PoseStamped lift_pose;
   lift_pose.header.frame_id = "base_link";
   lift_pose.pose.position.x = yellow_cube_pose_.position.x;
-  lift_pose.pose.position.y = yellow_cube_pose_.position.y;
+  lift_pose.pose.position.y = yellow_cube_pose_.position.y - 0.01; // Adjust y position by -0.01 to match grasp pose
   lift_pose.pose.position.z = 0.15; // 15cm above ground
   lift_pose.pose.orientation = grasp_orientation_msg;
 
@@ -156,7 +156,7 @@ void StackingManagerNode::execute_stacking_task()
   geometry_msgs::msg::PoseStamped orange_pre_place_pose;
   orange_pre_place_pose.header.frame_id = "base_link";
   orange_pre_place_pose.pose.position.x = orange_cube_pose_.position.x;
-  orange_pre_place_pose.pose.position.y = orange_cube_pose_.position.y;
+  orange_pre_place_pose.pose.position.y = orange_cube_pose_.position.y - 0.005; // Adjust y position by -0.005 to fix gripper offset
   orange_pre_place_pose.pose.position.z = 0.15; // 15cm above ground
   orange_pre_place_pose.pose.orientation = grasp_orientation_msg;
 
@@ -169,8 +169,8 @@ void StackingManagerNode::execute_stacking_task()
   geometry_msgs::msg::PoseStamped orange_place_pose;
   orange_place_pose.header.frame_id = "base_link";
   orange_place_pose.pose.position.x = orange_cube_pose_.position.x;
-  orange_place_pose.pose.position.y = orange_cube_pose_.position.y;
-  orange_place_pose.pose.position.z = 0.14; // 15cm above ground
+  orange_place_pose.pose.position.y = orange_cube_pose_.position.y - 0.005; // Adjust y position by -0.005 to fix gripper offset
+  orange_place_pose.pose.position.z = 0.14; // 14cm above ground
   orange_place_pose.pose.orientation = grasp_orientation_msg;
 
   RCLCPP_INFO(this->get_logger(), "Orange place pose set to [%.3f, %.3f, %.3f]",
@@ -202,8 +202,8 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Move to the grasp position
-  success &= go_to_pose(yellow_grasp_pose, "Move to Grasp Position");
+  // Move to the grasp position using Cartesian path for smoother movement
+  success &= move_with_cartesian_path(yellow_grasp_pose, "Move to Grasp Position", 0.0, 0.005);
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to move to grasp position. Aborting task.");
     return;
@@ -218,9 +218,9 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Allow gripper to close - increase delay to ensure it's fully closed
-  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to close completely (1 seconds)...");
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  // Allow gripper to close - use a shorter delay for faster operation
+  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to close completely (0.2 seconds)...");
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   // Verify the gripper is closed enough to grasp the cube
   std::vector<double> gripper_joint_values = gripper_group_->getCurrentJointValues();
@@ -243,9 +243,9 @@ void StackingManagerNode::execute_stacking_task()
         return;
       }
 
-      // Wait again
-      RCLCPP_INFO(this->get_logger(), "Waiting for gripper to close completely (3 more seconds)...");
-      std::this_thread::sleep_for(std::chrono::seconds(3));
+      // Wait again with shorter delay
+      RCLCPP_INFO(this->get_logger(), "Waiting for gripper to close completely (0.2 more seconds)...");
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
   }
 
@@ -256,8 +256,8 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Lift yellow cube
-  success &= go_to_pose(lift_pose, "Lift Yellow Cube");
+  // Lift yellow cube using Cartesian path for smoother movement
+  success &= move_with_cartesian_path(lift_pose, "Lift Yellow Cube", 0.0, 0.005);
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "Failed to lift yellow cube. Aborting task.");
     return;
@@ -267,23 +267,9 @@ void StackingManagerNode::execute_stacking_task()
   arm_group_->setPlanningTime(30.0);  // Increase planning time to 30 seconds
   arm_group_->setNumPlanningAttempts(20);  // Increase planning attempts to 20
 
-  // Move directly to the orange pre-place position
-  success &= go_to_pose(orange_pre_place_pose, "Move to Orange Pre-Place");
+  RCLCPP_INFO(this->get_logger(), "Skipping pre-place position and moving directly to place position");
 
-  // Reset planning parameters to normal values
-  arm_group_->setPlanningTime(15.0);
-  arm_group_->setNumPlanningAttempts(10);
-
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move to orange pre-place. Aborting task.");
-    return;
-  }
-
-  // Temporarily increase planning time and attempts for this challenging move
-  arm_group_->setPlanningTime(30.0);  // Increase planning time to 30 seconds
-  arm_group_->setNumPlanningAttempts(20);  // Increase planning attempts to 20
-
-  // Move directly to the place position
+  // Move directly to the place position using regular planning (more reliable for this move)
   success &= go_to_pose(orange_place_pose, "Move to Place Position");
 
   // Reset planning parameters to normal values
@@ -304,9 +290,9 @@ void StackingManagerNode::execute_stacking_task()
     return;
   }
 
-  // Allow gripper to open - increase delay to ensure it's fully opened
-  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to open completely (1 seconds)...");
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  // Allow gripper to open - use a shorter delay for faster operation
+  RCLCPP_INFO(this->get_logger(), "Waiting for gripper to open completely (0.2 seconds)...");
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   // Detach yellow cube
   success &= detach_cube(YELLOW_CUBE_ID);
@@ -330,21 +316,27 @@ void StackingManagerNode::execute_stacking_task()
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  // Move back to orange pre-place position
-  orange_pre_place_pose.pose.position.z = 0.2; // Ensure we're using a higher Z value
+  // Create a safe position to move to after placing the cube
+  geometry_msgs::msg::PoseStamped safe_position;
+  safe_position.header.frame_id = "base_link";
+  safe_position.pose.position.x = orange_cube_pose_.position.x;
+  safe_position.pose.position.y = orange_cube_pose_.position.y - 0.005; // Keep the same y-offset
+  safe_position.pose.position.z = 0.2; // Move to a higher Z value for safety
+  safe_position.pose.orientation = orange_place_pose.pose.orientation;
 
   // Temporarily increase planning time and attempts for this challenging move
   arm_group_->setPlanningTime(30.0);  // Increase planning time to 30 seconds
   arm_group_->setNumPlanningAttempts(20);  // Increase planning attempts to 20
 
-  success &= go_to_pose(orange_pre_place_pose, "Move back to Orange Pre-Place");
+  RCLCPP_INFO(this->get_logger(), "Moving to safe position above the orange cube");
+  success &= go_to_pose(safe_position, "Move to Safe Position");
 
   // Reset planning parameters to normal values
   arm_group_->setPlanningTime(15.0);
   arm_group_->setNumPlanningAttempts(10);
 
   if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to move back to orange pre-place. Continuing to home position.");
+    RCLCPP_ERROR(this->get_logger(), "Failed to move to safe position. Continuing to home position.");
   }
 
   // Go home with increased planning time
@@ -577,120 +569,137 @@ bool StackingManagerNode::go_to_pose(const geometry_msgs::msg::PoseStamped& targ
     RCLCPP_INFO(this->get_logger(), "Using default position tolerance of 1cm and orientation tolerance of 0.57 degrees");
   }
 
-  // No special handling for different move types
-
-  RCLCPP_INFO(this->get_logger(), "Setting pose target and planning...");
-  arm_group_->setPoseTarget(target_pose);
-
-  // Record planning start time for performance measurement
-  auto planning_start_time = this->now();
-
+  // Add retry mechanism for planning and execution
+  const int max_planning_attempts = 3;
+  const int max_execution_attempts = 2;
+  bool planning_success = false;
+  bool execution_success = false;
   moveit::planning_interface::MoveGroupInterface::Plan plan;
-  bool success = static_cast<bool>(arm_group_->plan(plan));
+  moveit::core::MoveItErrorCode error_code;
 
-  // Calculate planning time
-  auto planning_end_time = this->now();
-  double planning_time = (planning_end_time - planning_start_time).seconds();
-  RCLCPP_INFO(this->get_logger(), "time taken to generate plan: %.7f seconds", planning_time);
+  // Planning retry loop
+  for (int planning_attempt = 1; planning_attempt <= max_planning_attempts && !planning_success; ++planning_attempt) {
+    RCLCPP_INFO(this->get_logger(), "Planning attempt %d/%d for %s",
+               planning_attempt, max_planning_attempts, description.c_str());
 
-  if (!success) {
+    // Set pose target for each attempt
+    arm_group_->setPoseTarget(target_pose);
+
+    // Record planning start time for performance measurement
+    auto planning_start_time = this->now();
+
+    // Plan the motion
+    planning_success = static_cast<bool>(arm_group_->plan(plan));
+
+    // Calculate planning time
+    auto planning_end_time = this->now();
+    double planning_time = (planning_end_time - planning_start_time).seconds();
+    RCLCPP_INFO(this->get_logger(), "Planning attempt %d took %.7f seconds",
+               planning_attempt, planning_time);
+
+    if (planning_success) {
+      RCLCPP_INFO(this->get_logger(), "Planning successful on attempt %d", planning_attempt);
+      break;
+    } else if (planning_attempt < max_planning_attempts) {
+      RCLCPP_WARN(this->get_logger(), "Planning attempt %d failed, retrying...", planning_attempt);
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));  // Short delay before retry
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "All %d planning attempts failed for %s",
+                  max_planning_attempts, description.c_str());
+    }
+  }
+
+  // Check if planning was successful or if we can continue despite failure
+  if (!planning_success) {
     if (allow_collision) {
-      RCLCPP_WARN(this->get_logger(), "Failed to plan %s, but continuing due to expected collision", description.c_str());
+      RCLCPP_WARN(this->get_logger(), "Failed to plan %s, but continuing due to expected collision",
+                 description.c_str());
       return true;  // Continue with the task despite planning failure
     } else {
-      RCLCPP_ERROR(this->get_logger(), "Failed to plan %s", description.c_str());
+      RCLCPP_ERROR(this->get_logger(), "Failed to plan %s after %d attempts",
+                  description.c_str(), max_planning_attempts);
       return false;
     }
   }
 
   RCLCPP_INFO(this->get_logger(), "Planning successful, executing movement...");
 
-  // Use the MoveIt interface to execute the plan
-  // Instead of using execute(), we'll use the MoveIt interface's move() method
-  // which uses the MoveGroup action interface
-  moveit::core::MoveItErrorCode error_code = arm_group_->move();
+  // Execution retry loop
+  for (int execution_attempt = 1; execution_attempt <= max_execution_attempts && !execution_success; ++execution_attempt) {
+    RCLCPP_INFO(this->get_logger(), "Execution attempt %d/%d for %s",
+               execution_attempt, max_execution_attempts, description.c_str());
 
-  // Check if the move was successful or if it failed due to a collision
-  if (error_code == moveit::core::MoveItErrorCode::SUCCESS) {
-    RCLCPP_INFO(this->get_logger(), "Successfully completed %s", description.c_str());
-    return true;
-  } else if (allow_collision &&
-            (error_code == moveit::core::MoveItErrorCode::INVALID_MOTION_PLAN ||
-             error_code == moveit::core::MoveItErrorCode::PLANNING_FAILED ||
-             error_code == moveit::core::MoveItErrorCode::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE)) {
-    // This error can occur when there's a collision during validation
-    // If we're trying to grasp the cube, this is expected
-    RCLCPP_WARN(this->get_logger(), "Expected collision detected during %s. Continuing with task.", description.c_str());
-    return true;  // Return true to continue with the task
-  } else {
-    RCLCPP_ERROR(this->get_logger(), "Failed to execute %s (error code: %i)",
-                description.c_str(), static_cast<int>(error_code.val));
+    // Execute the plan
+    error_code = arm_group_->execute(plan);
 
-    // Provide more detailed error information
-    switch (error_code.val) {
-      case moveit::core::MoveItErrorCode::FAILURE:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: General failure");
-        break;
-      case moveit::core::MoveItErrorCode::PLANNING_FAILED:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Planning failed");
-        break;
-      case moveit::core::MoveItErrorCode::INVALID_MOTION_PLAN:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Invalid motion plan");
-        break;
-      case moveit::core::MoveItErrorCode::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Motion plan invalidated by environment change");
-        break;
-      case moveit::core::MoveItErrorCode::CONTROL_FAILED:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Control failed");
-        break;
-      case moveit::core::MoveItErrorCode::UNABLE_TO_AQUIRE_SENSOR_DATA:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Unable to acquire sensor data");
-        break;
-      case moveit::core::MoveItErrorCode::TIMED_OUT:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Timed out");
-        break;
-      case moveit::core::MoveItErrorCode::PREEMPTED:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Preempted");
-        break;
-      case moveit::core::MoveItErrorCode::START_STATE_IN_COLLISION:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Start state in collision");
-        break;
-      case moveit::core::MoveItErrorCode::START_STATE_VIOLATES_PATH_CONSTRAINTS:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Start state violates path constraints");
-        break;
-      case moveit::core::MoveItErrorCode::GOAL_IN_COLLISION:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Goal in collision");
-        break;
-      case moveit::core::MoveItErrorCode::GOAL_VIOLATES_PATH_CONSTRAINTS:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Goal violates path constraints");
-        break;
-      case moveit::core::MoveItErrorCode::GOAL_CONSTRAINTS_VIOLATED:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Goal constraints violated");
-        break;
-      case moveit::core::MoveItErrorCode::INVALID_GROUP_NAME:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Invalid group name");
-        break;
-      case moveit::core::MoveItErrorCode::INVALID_GOAL_CONSTRAINTS:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Invalid goal constraints");
-        break;
-      case moveit::core::MoveItErrorCode::INVALID_ROBOT_STATE:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Invalid robot state");
-        break;
-      case moveit::core::MoveItErrorCode::INVALID_LINK_NAME:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Invalid link name");
-        break;
-      case moveit::core::MoveItErrorCode::INVALID_OBJECT_NAME:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Invalid object name");
-        break;
-      default:
-        RCLCPP_ERROR(this->get_logger(), "Detailed error: Unknown error code");
-        break;
+    if (error_code == moveit::core::MoveItErrorCode::SUCCESS) {
+      RCLCPP_INFO(this->get_logger(), "Successfully completed %s on execution attempt %d",
+                 description.c_str(), execution_attempt);
+      execution_success = true;
+      break;
+    } else if (allow_collision &&
+              (error_code == moveit::core::MoveItErrorCode::INVALID_MOTION_PLAN ||
+               error_code == moveit::core::MoveItErrorCode::PLANNING_FAILED ||
+               error_code == moveit::core::MoveItErrorCode::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE)) {
+      // This error can occur when there's a collision during validation
+      // If we're trying to grasp the cube, this is expected
+      RCLCPP_WARN(this->get_logger(), "Expected collision detected during %s. Continuing with task.",
+                 description.c_str());
+      execution_success = true;
+      break;
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "All %d execution attempts failed for %s",
+                  max_execution_attempts, description.c_str());
+
+      // Provide more detailed error information
+      switch (error_code.val) {
+        case moveit::core::MoveItErrorCode::FAILURE:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: General failure");
+          break;
+        case moveit::core::MoveItErrorCode::PLANNING_FAILED:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Planning failed");
+          break;
+        case moveit::core::MoveItErrorCode::INVALID_MOTION_PLAN:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Invalid motion plan");
+          break;
+        case moveit::core::MoveItErrorCode::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Motion plan invalidated by environment change");
+          break;
+        case moveit::core::MoveItErrorCode::CONTROL_FAILED:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Control failed");
+          break;
+        case moveit::core::MoveItErrorCode::UNABLE_TO_AQUIRE_SENSOR_DATA:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Unable to acquire sensor data");
+          break;
+        case moveit::core::MoveItErrorCode::TIMED_OUT:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Timed out");
+          break;
+        case moveit::core::MoveItErrorCode::PREEMPTED:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Preempted");
+          break;
+        case moveit::core::MoveItErrorCode::START_STATE_IN_COLLISION:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Start state in collision");
+          break;
+        case moveit::core::MoveItErrorCode::START_STATE_VIOLATES_PATH_CONSTRAINTS:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Start state violates path constraints");
+          break;
+        case moveit::core::MoveItErrorCode::GOAL_IN_COLLISION:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Goal in collision");
+          break;
+        case moveit::core::MoveItErrorCode::GOAL_VIOLATES_PATH_CONSTRAINTS:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Goal violates path constraints");
+          break;
+        case moveit::core::MoveItErrorCode::GOAL_CONSTRAINTS_VIOLATED:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Goal constraints violated");
+          break;
+        default:
+          RCLCPP_ERROR(this->get_logger(), "Detailed error: Unknown error code");
+          break;
+      }
     }
-
-    // No special handling for different move types
-
-    return false;
   }
+
+  return execution_success;
 }
 
 bool StackingManagerNode::move_cartesian(const geometry_msgs::msg::Pose& target_pose,
@@ -724,6 +733,121 @@ bool StackingManagerNode::move_cartesian(const geometry_msgs::msg::Pose& target_
 
   RCLCPP_INFO(this->get_logger(), "Successfully completed %s", description.c_str());
   return true;
+}
+
+bool StackingManagerNode::move_with_cartesian_path(
+    const geometry_msgs::msg::PoseStamped& target_pose,
+    const std::string& description,
+    double jump_threshold,
+    double eef_step)
+{
+  RCLCPP_INFO(this->get_logger(), "Planning Cartesian path for %s: [%.3f, %.3f, %.3f]",
+             description.c_str(),
+             target_pose.pose.position.x,
+             target_pose.pose.position.y,
+             target_pose.pose.position.z);
+
+  // Get the current pose to use as the start of the path
+  geometry_msgs::msg::PoseStamped current_pose;
+  current_pose.header.frame_id = arm_group_->getPlanningFrame();
+  current_pose.pose = arm_group_->getCurrentPose().pose;
+
+  RCLCPP_INFO(this->get_logger(), "Current position: [%.3f, %.3f, %.3f]",
+             current_pose.pose.position.x,
+             current_pose.pose.position.y,
+             current_pose.pose.position.z);
+
+  // Create waypoints for the Cartesian path
+  std::vector<geometry_msgs::msg::Pose> waypoints;
+  waypoints.push_back(target_pose.pose);
+
+  // Reduce velocity and acceleration for more precise movements
+  double saved_velocity_scaling = arm_group_->getMaxVelocityScalingFactor();
+  double saved_acceleration_scaling = arm_group_->getMaxAccelerationScalingFactor();
+
+  arm_group_->setMaxVelocityScalingFactor(0.3);  // 30% of maximum velocity
+  arm_group_->setMaxAccelerationScalingFactor(0.3);  // 30% of maximum acceleration
+
+  // Try Cartesian planning with retries
+  moveit_msgs::msg::RobotTrajectory trajectory;
+  double fraction = 0.0;
+  int max_attempts = 3;
+
+  for (int attempt = 1; attempt <= max_attempts; ++attempt) {
+    // Compute the Cartesian path
+    fraction = arm_group_->computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
+
+    if (fraction >= 0.9) {
+      RCLCPP_INFO(this->get_logger(), "Cartesian path computed successfully on attempt %d (%.2f%% achieved)",
+                 attempt, fraction * 100.0);
+      break;
+    } else {
+      RCLCPP_WARN(this->get_logger(), "Cartesian planning attempt %d: only %.2f%% of path achieved",
+                 attempt, fraction * 100.0);
+
+      if (attempt < max_attempts) {
+        // Try with a slightly different step size for next attempt
+        eef_step *= 1.2;  // Increase step size by 20%
+        RCLCPP_INFO(this->get_logger(), "Retrying with step size %.5f", eef_step);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
+    }
+  }
+
+  bool success = false;
+
+  if (fraction >= 0.9) {
+    // Execute the Cartesian trajectory
+    RCLCPP_INFO(this->get_logger(), "Executing Cartesian path (%.2f%% achieved)", fraction * 100.0);
+
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    plan.trajectory = trajectory;
+
+    moveit::core::MoveItErrorCode error_code = arm_group_->execute(plan);
+
+    if (error_code == moveit::core::MoveItErrorCode::SUCCESS) {
+      RCLCPP_INFO(this->get_logger(), "Successfully completed Cartesian path for %s", description.c_str());
+      success = true;
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Failed to execute Cartesian path for %s (error code: %i)",
+                  description.c_str(), static_cast<int>(error_code.val));
+    }
+  } else {
+    RCLCPP_WARN(this->get_logger(), "Failed to compute adequate Cartesian path after %d attempts (best: %.2f%%)",
+               max_attempts, fraction * 100.0);
+  }
+
+  // If Cartesian planning failed, fall back to regular planning
+  if (!success) {
+    RCLCPP_INFO(this->get_logger(), "Falling back to regular motion planning for %s", description.c_str());
+
+    // Use regular motion planning as fallback
+    arm_group_->setPoseTarget(target_pose);
+
+    moveit::planning_interface::MoveGroupInterface::Plan regular_plan;
+    bool plan_success = static_cast<bool>(arm_group_->plan(regular_plan));
+
+    if (plan_success) {
+      RCLCPP_INFO(this->get_logger(), "Regular motion plan computed successfully, executing...");
+      moveit::core::MoveItErrorCode error_code = arm_group_->execute(regular_plan);
+
+      if (error_code == moveit::core::MoveItErrorCode::SUCCESS) {
+        RCLCPP_INFO(this->get_logger(), "Successfully completed regular motion for %s", description.c_str());
+        success = true;
+      } else {
+        RCLCPP_ERROR(this->get_logger(), "Failed to execute regular motion for %s (error code: %i)",
+                    description.c_str(), static_cast<int>(error_code.val));
+      }
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Failed to compute regular motion plan for %s", description.c_str());
+    }
+  }
+
+  // Restore original velocity and acceleration scaling
+  arm_group_->setMaxVelocityScalingFactor(saved_velocity_scaling);
+  arm_group_->setMaxAccelerationScalingFactor(saved_acceleration_scaling);
+
+  return success;
 }
 
 bool StackingManagerNode::set_gripper_state(const std::string& state_name)
@@ -868,7 +992,7 @@ bool StackingManagerNode::set_gripper_state(const std::string& state_name)
 
     // Allow time for the gripper to complete its motion
     RCLCPP_INFO(this->get_logger(), "Waiting for gripper to complete motion...");
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
   } else {
     // For opening, use standard planning approach
     RCLCPP_INFO(this->get_logger(), "Planning gripper motion...");

@@ -5,7 +5,8 @@ from launch.actions import (
     DeclareLaunchArgument,
     TimerAction,
     AppendEnvironmentVariable,
-    OpaqueFunction
+    OpaqueFunction,
+    ExecuteProcess
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -205,10 +206,28 @@ def generate_launch_description():
         actions=[stacking_manager_node]
     )
 
+    # Set default camera position in Gazebo (position values rounded to 2 decimal places)
+    set_camera_position = ExecuteProcess(
+        cmd=['gz', 'service', '-s', '/gui/move_to/pose',
+             '--reqtype', 'gz.msgs.GUICamera',
+             '--reptype', 'gz.msgs.Boolean',
+             '--timeout', '2000',
+             '--req', 'pose: {position: {x: 0.56, y: 0.46, z: 0.36} orientation: {x: 0.02, y: 0.01, z: -0.93, w: 0.36}}'],
+        output='screen'
+    )
+
+    # Add a delay before setting the camera position to ensure Gazebo is fully initialized
+    delayed_camera_position = TimerAction(
+        period=8.0,  # Start after 8 seconds
+        actions=[set_camera_position]
+    )
+
     return LaunchDescription(
         declared_arguments + [
         set_models_env,
         gazebo_launch,
+        # Add the camera position setting with a delay
+        delayed_camera_position,
         move_group_launch,
         planning_scene_server_launch,  # Add the planning scene server
         planning_scene_remapper,       # Add the planning scene service remapper
