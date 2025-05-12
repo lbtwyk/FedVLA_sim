@@ -102,8 +102,8 @@ void CubeSpawnerNode::spawn_yellow_cube()
 
   // Define the cube pose - adjusted for the planning scene
   geometry_msgs::msg::Pose cube_pose;
-  cube_pose.position.x = 0.2;
-  cube_pose.position.y = 0.15;
+  cube_pose.position.x = 0.0;
+  cube_pose.position.y = 0.20;
   cube_pose.position.z = 0.0125;  // Half the height of the cube (0.025/2)
   cube_pose.orientation.w = 1.0;
 
@@ -141,8 +141,8 @@ void CubeSpawnerNode::spawn_orange_cube()
 
   // Define the cube pose - adjusted for the planning scene
   geometry_msgs::msg::Pose cube_pose;
-  cube_pose.position.x = 0.15;
-  cube_pose.position.y = 0.2;
+  cube_pose.position.x = 0.035;
+  cube_pose.position.y = 0.25;
   cube_pose.position.z = 0.0125;  // Half the height of the cube (0.025/2)
   cube_pose.orientation.w = 1.0;
 

@@ -12,7 +12,7 @@ gz service -s /world/cube_stacking_world/create \
 '<?xml version="1.0" ?>'\
 '<sdf version="1.7">'\
 '<model name="yellow_cube">'\
-'<pose>0.22 0.12 0.04 0 0 0</pose>'\
+'<pose>0 0.20 0.04 0 0 0</pose>'\
 '<static>false</static>'\
 '<link name="link">'\
 '<inertial>'\
@@ -58,7 +58,7 @@ gz service -s /world/cube_stacking_world/create \
 '<?xml version="1.0" ?>'\
 '<sdf version="1.7">'\
 '<model name="orange_cube">'\
-'<pose>0.4 0.15 0.04 0 0 0</pose>'\
+'<pose>0.035 0.25 0.04 0 0 0</pose>'\
 '<static>false</static>'\
 '<link name="link">'\
 '<inertial>'\
