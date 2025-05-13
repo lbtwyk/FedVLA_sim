@@ -18,6 +18,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 #include <control_msgs/action/gripper_command.hpp>
+#include <trajectory_data_interfaces/srv/start_stop_episode.hpp>
 #include <memory>
 #include <string>
 #include <thread>
@@ -164,6 +165,23 @@ private:
   // Cube poses
   geometry_msgs::msg::Pose yellow_cube_pose_;
   geometry_msgs::msg::Pose orange_cube_pose_;
+
+  // Data collection service client
+  rclcpp::Client<trajectory_data_interfaces::srv::StartStopEpisode>::SharedPtr start_stop_episode_client_;
+  std::string current_episode_id_;
+  bool data_collection_enabled_;
+
+  /**
+   * @brief Generate a unique episode ID based on timestamp.
+   * @return A unique episode identifier string.
+   */
+  std::string generate_episode_id();
+
+  /**
+   * @brief Stop data collection for the current episode.
+   * @return True if successful, false otherwise.
+   */
+  bool stop_data_collection();
 };
 
 } // namespace mycobot_stacking_project

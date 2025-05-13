@@ -17,14 +17,23 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <chrono>
+#include <sstream>
+#include <iomanip>
 
 namespace mycobot_stacking_project
 {
 
 StackingManagerNode::StackingManagerNode(const rclcpp::NodeOptions & options)
-: Node("stacking_manager", options)
+: Node("stacking_manager", options),
+  data_collection_enabled_(true)  // Enable data collection by default
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Stacking Manager Node");
+
+  // Declare parameters
+  this->declare_parameter("data_collection_enabled", true);
+
+  // Get parameters
+  data_collection_enabled_ = this->get_parameter("data_collection_enabled").as_bool();
 
   // Create a node for MoveGroup context
   node_for_movegroup_ = std::make_shared<rclcpp::Node>(
@@ -38,6 +47,15 @@ StackingManagerNode::StackingManagerNode(const rclcpp::NodeOptions & options)
 
   // Start executor in a separate thread
   std::thread([this]() { this->executor_->spin(); }).detach();
+
+  // Initialize data collection service client
+  if (data_collection_enabled_) {
+    RCLCPP_INFO(this->get_logger(), "Data collection is enabled");
+    start_stop_episode_client_ = this->create_client<trajectory_data_interfaces::srv::StartStopEpisode>(
+      "/state_logger_node/start_stop_episode");
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Data collection is disabled");
+  }
 
   // Wait for the planning scene service to be available
   RCLCPP_INFO(this->get_logger(), "Waiting for planning scene service to be available...");
@@ -104,13 +122,72 @@ StackingManagerNode::~StackingManagerNode()
   }
 }
 
+std::string StackingManagerNode::generate_episode_id()
+{
+  // Get current time
+  auto now = std::chrono::system_clock::now();
+  auto now_time_t = std::chrono::system_clock::to_time_t(now);
+  auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    now.time_since_epoch()) % 1000;
+
+  // Format time as string
+  std::tm now_tm;
+  localtime_r(&now_time_t, &now_tm);
+
+  std::ostringstream oss;
+  oss << "episode_"
+      << std::put_time(&now_tm, "%Y%m%d_%H%M%S")
+      << "_" << std::setfill('0') << std::setw(3) << now_ms.count();
+
+  return oss.str();
+}
+
 void StackingManagerNode::execute_stacking_task()
 {
   RCLCPP_INFO(this->get_logger(), "Starting cube stacking task");
 
+  // Start data collection if enabled
+  if (data_collection_enabled_ && start_stop_episode_client_) {
+    // Wait for the service to be available
+    if (!start_stop_episode_client_->wait_for_service(std::chrono::seconds(5))) {
+      RCLCPP_WARN(this->get_logger(), "Data collection service not available, continuing without data collection");
+    } else {
+      // Generate a unique episode ID
+      current_episode_id_ = generate_episode_id();
+
+      // Create the request
+      auto request = std::make_shared<trajectory_data_interfaces::srv::StartStopEpisode::Request>();
+      request->start_recording = true;
+      request->episode_identifier = current_episode_id_;
+
+      // Call the service
+      RCLCPP_INFO(this->get_logger(), "Starting data collection for episode: %s", current_episode_id_.c_str());
+      auto future = start_stop_episode_client_->async_send_request(request);
+
+      // Wait for the result without spinning (we're already in a node that's being spun)
+      std::chrono::seconds timeout(5);
+      if (future.wait_for(timeout) == std::future_status::ready) {
+        auto result = future.get();
+        if (result->success) {
+          RCLCPP_INFO(this->get_logger(), "Data collection started: %s", result->message.c_str());
+        } else {
+          RCLCPP_ERROR(this->get_logger(), "Failed to start data collection: %s", result->message.c_str());
+        }
+      } else {
+        RCLCPP_ERROR(this->get_logger(), "Failed to call data collection service");
+      }
+    }
+  }
+
   // Wait for cubes to be detected
   if (!wait_for_cubes()) {
     RCLCPP_ERROR(this->get_logger(), "Failed to detect cubes. Aborting task.");
+
+    // Stop data collection if it was started
+    if (data_collection_enabled_ && start_stop_episode_client_ && !current_episode_id_.empty()) {
+      stop_data_collection();
+    }
+
     return;
   }
 
@@ -356,6 +433,50 @@ void StackingManagerNode::execute_stacking_task()
   }
 
   RCLCPP_INFO(this->get_logger(), "Cube stacking task completed successfully");
+
+  // Stop data collection if it was started
+  if (data_collection_enabled_ && start_stop_episode_client_ && !current_episode_id_.empty()) {
+    stop_data_collection();
+  }
+}
+
+bool StackingManagerNode::stop_data_collection()
+{
+  if (!start_stop_episode_client_) {
+    RCLCPP_ERROR(this->get_logger(), "Data collection client not initialized");
+    return false;
+  }
+
+  if (current_episode_id_.empty()) {
+    RCLCPP_ERROR(this->get_logger(), "No active episode to stop");
+    return false;
+  }
+
+  // Create the request
+  auto request = std::make_shared<trajectory_data_interfaces::srv::StartStopEpisode::Request>();
+  request->start_recording = false;
+  request->episode_identifier = current_episode_id_;
+
+  // Call the service
+  RCLCPP_INFO(this->get_logger(), "Stopping data collection for episode: %s", current_episode_id_.c_str());
+  auto future = start_stop_episode_client_->async_send_request(request);
+
+  // Wait for the result without spinning (we're already in a node that's being spun)
+  std::chrono::seconds timeout(5);
+  if (future.wait_for(timeout) == std::future_status::ready) {
+    auto result = future.get();
+    if (result->success) {
+      RCLCPP_INFO(this->get_logger(), "Data collection stopped: %s", result->message.c_str());
+      current_episode_id_ = "";
+      return true;
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Failed to stop data collection: %s", result->message.c_str());
+      return false;
+    }
+  } else {
+    RCLCPP_ERROR(this->get_logger(), "Failed to call data collection service");
+    return false;
+  }
 }
 
 bool StackingManagerNode::wait_for_cubes(double timeout_sec)

@@ -1,0 +1,7 @@
+# Request
+bool start_recording         # True to start, False to stop
+string episode_identifier    # e.g., "episode_0001"
+---
+# Response
+bool success
+string message

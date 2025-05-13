@@ -133,3 +133,13 @@ ENV/
 # Temporary files
 *.swp
 *.swo
+
+# Data collection
+mycobot_episodes/
+**/mycobot_episodes/
+/mycobot_episodes/
+~/mycobot_episodes/
+**/episode_*/
+**/states.json
+**/frame_dir/
+**/image_*.png

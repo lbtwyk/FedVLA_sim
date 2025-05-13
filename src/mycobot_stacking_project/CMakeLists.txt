@@ -26,6 +26,7 @@ find_package(moveit_core REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 find_package(control_msgs REQUIRED)
+find_package(trajectory_data_interfaces REQUIRED)
 
 # Include directories
 include_directories(
@@ -73,6 +74,7 @@ ament_target_dependencies(stacking_manager_node
   tf2_geometry_msgs
   moveit_ros_planning_interface
   control_msgs
+  trajectory_data_interfaces
 )
 
 # Cube Spawner Node

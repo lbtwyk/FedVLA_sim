@@ -28,28 +28,38 @@ The project uses ROS 2 Jazzy Jalisco and MoveIt 2 for motion planning and contro
 ## Project Structure
 
 ```
-mycobot_stacking_project/
-├── include/                  # Header files
-│   └── mycobot_stacking_project/
-│       ├── cube_spawner_node.hpp     # Cube spawning functionality
-│       └── stacking_manager_node.hpp # Main stacking logic
-├── src/                      # Source files
-│   ├── cube_spawner_node.cpp         # Spawns cubes in the planning scene
-│   └── stacking_manager_node.cpp     # Implements the stacking task
-├── launch/                   # Launch files
-│   ├── fixed_stacking_task.launch.py # Main launch file for the project
-│   ├── mycobot_gazebo_with_friction.launch.py # Gazebo with friction parameters
-│   └── fixed_rviz.launch.py          # RViz configuration
-├── worlds/                   # Gazebo world files
-│   └── cube_stacking_world.world     # World with cubes and ground plane
-├── models/                   # Gazebo models
-│   ├── yellow_cube/                  # Yellow cube model
-│   └── orange_cube/                  # Orange cube model
-├── rviz/                     # RViz configuration
-│   └── stacking_display.rviz         # RViz config for the project
-└── urdf/                     # Robot URDF files
-    ├── mycobot_280_with_friction.urdf.xacro # Robot with friction parameters
-    └── gripper_friction.urdf.xacro          # Gripper with friction parameters
+.
+├── mycobot_stacking_project/        # Main stacking project package
+│   ├── include/                     # Header files
+│   │   └── mycobot_stacking_project/
+│   │       ├── cube_spawner_node.hpp     # Cube spawning functionality
+│   │       └── stacking_manager_node.hpp # Main stacking logic
+│   ├── src/                         # Source files
+│   │   ├── cube_spawner_node.cpp         # Spawns cubes in the planning scene
+│   │   └── stacking_manager_node.cpp     # Implements the stacking task
+│   ├── launch/                      # Launch files
+│   │   ├── fixed_stacking_task.launch.py # Main launch file for the project
+│   │   ├── collect_data.launch.py        # Launch file for data collection
+│   │   ├── mycobot_gazebo_with_friction.launch.py # Gazebo with friction parameters
+│   │   └── fixed_rviz.launch.py          # RViz configuration
+│   ├── worlds/                      # Gazebo world files
+│   │   └── cube_stacking_world.world     # World with cubes and ground plane
+│   ├── models/                      # Gazebo models
+│   │   ├── yellow_cube/                  # Yellow cube model
+│   │   └── orange_cube/                  # Orange cube model
+│   ├── rviz/                        # RViz configuration
+│   │   └── stacking_display.rviz         # RViz config for the project
+│   └── urdf/                        # Robot URDF files
+│       ├── mycobot_280_with_friction.urdf.xacro # Robot with friction parameters
+│       └── gripper_friction.urdf.xacro          # Gripper with friction parameters
+├── trajectory_data_interfaces/      # Custom interfaces for data collection
+│   └── srv/                         # Service definitions
+│       └── StartStopEpisode.srv     # Service for controlling data collection
+└── trajectory_data_collector/       # Data collection package
+    ├── trajectory_data_collector/   # Python package
+    │   └── state_logger_node.py     # Node for logging robot state data
+    └── launch/                      # Launch files
+        └── test_logger.launch.py    # Test launch file for the logger
 ```
 
 ## Key Components
@@ -117,12 +127,28 @@ The `StackingManagerNode` implements the core stacking logic:
    - Spawn the cubes in the planning scene
    - Execute the stacking task automatically
 
+### Data Collection
+
+To run the simulation with data collection enabled:
+
+```bash
+ros2 launch mycobot_stacking_project collect_data.launch.py output_base_dir:=~/mycobot_episodes
+```
+
+This will:
+- Start the simulation as described above
+- Launch the state logger node for data collection
+- Save trajectory data to the specified output directory
+
+For more details on the data collection system, see [DATA_COLLECTION.md](DATA_COLLECTION.md).
+
 ## Key Features
 
 - **Enhanced Friction**: Increased friction parameters to prevent cubes from slipping during manipulation
 - **Robust Motion Planning**: Uses MoveIt's planning capabilities with increased planning time and attempts for challenging moves
 - **Error Handling**: Comprehensive error detection and recovery mechanisms
 - **Gripper Control**: Precise gripper control for reliable grasping and releasing
+- **Data Collection**: System for collecting synchronized joint states, gripper positions, and camera images for training machine learning models
 
 ## Troubleshooting
 
