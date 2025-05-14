@@ -134,12 +134,9 @@ ENV/
 *.swp
 *.swo
 
-# Data collection
-mycobot_episodes/
-**/mycobot_episodes/
-/mycobot_episodes/
-~/mycobot_episodes/
-**/episode_*/
-**/states.json
-**/frame_dir/
-**/image_*.png
+
+
+
+
+src/moveit_task_constructor/
+src/warehouse_ros_mongo/
