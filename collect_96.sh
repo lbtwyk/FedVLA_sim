@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-set -e   # abort on any error
+set -e
 
-# 1) where to put your data
-OUTPUT_BASE="$(pwd)/data/maaz_data"
+# 1) Target location for episodes
+OUTPUT_BASE="$(pwd)/src/mycobot_episodes"
 mkdir -p "$OUTPUT_BASE"
 
-# 2) how many episodes you want
-NUM=96
+# 2) Number of episodes to collect (default to 96 if not given)
+NUM=${1:-96}
 
 for ((i=1; i<=NUM; i++)); do
   echo
@@ -14,7 +14,6 @@ for ((i=1; i<=NUM; i++)); do
   echo "   Starting episode $i of $NUM"
   echo "======================================="
 
-  # Launch exactly one episode
   python3 src/mycobot_stacking_project/scripts/run_episode_collection.py \
     --output-dir "$OUTPUT_BASE" \
     --num-episodes 1 \
@@ -25,3 +24,4 @@ done
 
 echo
 echo "All $NUM episodes finished!"
+
