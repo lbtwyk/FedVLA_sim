@@ -64,7 +64,7 @@ StackingManagerNode::StackingManagerNode(const rclcpp::NodeOptions & options)
   auto planning_scene_client = node_for_movegroup_->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
 
   // Wait for the service to be available with a timeout
-  const int max_wait_seconds = 60;
+  const int max_wait_seconds = 20;
   auto start_time = this->now();
   while (rclcpp::ok()) {
     if (planning_scene_client->wait_for_service(std::chrono::seconds(1))) {
@@ -149,7 +149,7 @@ void StackingManagerNode::execute_stacking_task()
   // Start data collection if enabled
   if (data_collection_enabled_ && start_stop_episode_client_) {
     // Wait for the service to be available
-    if (!start_stop_episode_client_->wait_for_service(std::chrono::seconds(5))) {
+    if (!start_stop_episode_client_->wait_for_service(std::chrono::seconds(2))) {
       RCLCPP_WARN(this->get_logger(), "Data collection service not available, continuing without data collection");
     } else {
       // Generate a unique episode ID
@@ -165,7 +165,7 @@ void StackingManagerNode::execute_stacking_task()
       auto future = start_stop_episode_client_->async_send_request(request);
 
       // Wait for the result without spinning (we're already in a node that's being spun)
-      std::chrono::seconds timeout(5);
+      std::chrono::seconds timeout(2);
       if (future.wait_for(timeout) == std::future_status::ready) {
         auto result = future.get();
         if (result->success) {
@@ -462,7 +462,7 @@ bool StackingManagerNode::stop_data_collection()
   auto future = start_stop_episode_client_->async_send_request(request);
 
   // Wait for the result without spinning (we're already in a node that's being spun)
-  std::chrono::seconds timeout(5);
+  std::chrono::seconds timeout(2);
   if (future.wait_for(timeout) == std::future_status::ready) {
     auto result = future.get();
     if (result->success) {
@@ -489,7 +489,7 @@ bool StackingManagerNode::wait_for_cubes(double timeout_sec)
   bool found_orange = false;
   int consecutive_yellow_detections = 0;
   int consecutive_orange_detections = 0;
-  const int required_consecutive_detections = 3; // Require 3 consecutive detections for stability
+  const int required_consecutive_detections = 2; // Require 3 consecutive detections for stability
 
   while (rclcpp::ok()) {
     auto current_time = this->now();
@@ -1041,8 +1041,8 @@ bool StackingManagerNode::set_gripper_state(const std::string& state_name)
       );
 
       // Wait for the action server to become available
-      if (!gripper_client->wait_for_action_server(std::chrono::seconds(5))) {
-        RCLCPP_ERROR(this->get_logger(), "Gripper action server not available after 5 seconds");
+      if (!gripper_client->wait_for_action_server(std::chrono::seconds(3))) {
+        RCLCPP_ERROR(this->get_logger(), "Gripper action server not available after 3 seconds");
         return false;
       }
 
@@ -1098,7 +1098,7 @@ bool StackingManagerNode::set_gripper_state(const std::string& state_name)
       // Wait for the action to complete with a timeout
       {
         std::unique_lock<std::mutex> lock(mutex);
-        if (!cv.wait_for(lock, std::chrono::seconds(5), [&]() { return action_completed; })) {
+        if (!cv.wait_for(lock, std::chrono::seconds(3), [&]() { return action_completed; })) {
           RCLCPP_WARN(this->get_logger(), "Timeout waiting for gripper action to complete");
           // Continue anyway, as the gripper may still be moving
           action_succeeded = true;

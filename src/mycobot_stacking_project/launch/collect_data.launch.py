@@ -6,7 +6,8 @@ from launch.actions import (
     TimerAction,
     AppendEnvironmentVariable,
     OpaqueFunction,
-    ExecuteProcess
+    ExecuteProcess,
+    GroupAction
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -198,13 +199,6 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}]
     )
 
-    # Add a delay before starting the cube spawner
-    # to ensure MoveIt is fully initialized
-    delayed_cube_spawner = TimerAction(
-        period=5.0,  # Start after 5 seconds
-        actions=[cube_spawner_node]
-    )
-
     # State Logger Node for data collection
     state_logger_node = Node(
         package='trajectory_data_collector',
@@ -225,13 +219,6 @@ def generate_launch_description():
         ]
     )
 
-    # Add a delay before starting the state logger
-    # to ensure Gazebo and MoveIt are fully initialized
-    delayed_state_logger = TimerAction(
-        period=10.0,  # Start after 10 seconds
-        actions=[state_logger_node]
-    )
-
     # Application Node (Stacking Manager)
     stacking_manager_node = Node(
         package='mycobot_stacking_project',
@@ -245,13 +232,6 @@ def generate_launch_description():
         ]
     )
 
-    # Add a delay before starting the stacking manager
-    # to ensure Gazebo and MoveIt are fully initialized
-    delayed_stacking_manager = TimerAction(
-        period=15.0,  # Start after 15 seconds
-        actions=[stacking_manager_node]
-    )
-
     # Set default camera position in Gazebo
     set_camera_position = ExecuteProcess(
         cmd=['gz', 'service', '-s', '/gui/move_to/pose',
@@ -262,26 +242,46 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Add a delay before setting the camera position to ensure Gazebo is fully initialized
-    delayed_camera_position = TimerAction(
-        period=8.0,  # Start after 8 seconds
-        actions=[set_camera_position]
-    )
+    # Create parallel initialization groups with appropriate delays
+    # Group 1: Start camera position setting and cube spawner in parallel after Gazebo is initialized
+    parallel_group_1 = GroupAction([
+        # Set camera position after Gazebo is initialized
+        TimerAction(
+            period=5.0,  # Reduced from 8.0 seconds
+            actions=[set_camera_position]
+        ),
+        # Start cube spawner after MoveIt is initialized
+        TimerAction(
+            period=5.0,  # Same delay as before
+            actions=[cube_spawner_node]
+        )
+    ])
+
+    # Group 2: Start state logger and stacking manager in parallel
+    # Both depend on Gazebo, MoveIt, and cube spawner being initialized
+    parallel_group_2 = GroupAction([
+        # Start state logger
+        TimerAction(
+            period=8.0,  # Reduced from 10.0 seconds
+            actions=[state_logger_node]
+        ),
+        # Start stacking manager slightly later to ensure state logger is ready
+        TimerAction(
+            period=10.0,  # Reduced from 15.0 seconds
+            actions=[stacking_manager_node]
+        )
+    ])
 
     return LaunchDescription(
         declared_arguments + [
         set_models_env,
         gazebo_launch,
-        # Add the camera position setting with a delay
-        delayed_camera_position,
         move_group_launch,
         planning_scene_server_launch,
         planning_scene_remapper,
         rviz_node,
-        # Add the cube spawner with a delay
-        delayed_cube_spawner,
-        # Add the state logger with a delay
-        delayed_state_logger,
-        # Add the stacking manager with a delay
-        delayed_stacking_manager,
+        # Add parallel group 1: camera position and cube spawner
+        parallel_group_1,
+        # Add parallel group 2: state logger and stacking manager
+        parallel_group_2
     ])
