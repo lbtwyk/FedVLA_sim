@@ -1,14 +1,14 @@
 # myCobot Stacking Project
 
-The main ROS 2 package for cube stacking simulation using the myCobot 280 robot arm. This package provides traditional motion planning capabilities using MoveIt 2 and supports data collection for training diffusion policy models.
+The main ROS 2 package for cube stacking simulation using the myCobot 280 robot arm. This package provides traditional motion planning using MoveIt 2 and supports data collection for training diffusion policy models.
 
 ## Overview
 
-This package implements a complete cube stacking pipeline with the following components:
+This package implements a complete cube stacking pipeline:
 
-- **Cube Spawner Node**: Manages cube placement and randomization in the simulation
+- **Cube Spawner Node**: Manages cube placement in the simulation
 - **Stacking Manager Node**: Executes pick-and-place operations using MoveIt 2
-- **Gazebo Integration**: Custom world files and robot configurations
+- **Gazebo Integration**: Custom world files and robot configurations with enhanced friction
 - **Data Collection**: Integration with trajectory data collection system
 
 ## Package Structure
@@ -50,18 +50,10 @@ src/mycobot_stacking_project/
 
 Manages cube placement in the simulation environment:
 
-- Spawns yellow and orange cubes with randomized positions
-- Adds cubes to the MoveIt planning scene
-- Supports collision detection to prevent cube overlap
+- Spawns yellow and orange cubes at fixed or randomized positions
+- Adds cubes to the MoveIt planning scene as collision objects
+- Adds ground plane collision object
 - Configurable position bounds and minimum distances
-
-**Parameters**:
-- `yellow_min_x`, `yellow_max_x`: X-axis bounds for yellow cube
-- `yellow_min_y`, `yellow_max_y`: Y-axis bounds for yellow cube  
-- `orange_min_x`, `orange_max_x`: X-axis bounds for orange cube
-- `orange_min_y`, `orange_max_y`: Y-axis bounds for orange cube
-- `min_distance_between_cubes`: Minimum distance between cubes
-- `randomize_positions`: Enable/disable position randomization
 
 ### Stacking Manager Node
 
@@ -69,16 +61,16 @@ Manages cube placement in the simulation environment:
 
 Implements the cube stacking task using MoveIt 2:
 
-- Waits for cubes to be detected in the planning scene
 - Executes pick-and-place operations with robust error handling
-- Supports both Cartesian and joint-space planning
+- Supports both Cartesian and joint-space planning with retry mechanisms
 - Integrates with data collection system when enabled
+- Direct gripper control (not using MoveIt gripper control)
 
 **Key Features**:
-- Pre-placement positioning for precise cube placement
-- Retry mechanisms for failed planning attempts
-- Configurable gripper control and timing
-- Speed control (75% of maximum for stability)
+- Movement heights: Pre-grasp 0.15m, Grasp 0.11m, Lift 0.15m, Place 0.14m
+- Gripper range: -0.5 (closed) to 0.0 (open)
+- Speed control: 75% of maximum velocity
+- Timing: 0.2s confirmation times with immediate retry on failure
 
 ## Launch Files
 
@@ -123,21 +115,16 @@ ros2 launch mycobot_stacking_project mycobot_gazebo_with_friction.launch.py \
 
 ### Cube Properties
 - **Dimensions**: 2.5cm x 2.5cm x 2.5cm
-- **Colors**: Yellow (target cube), Orange (base cube)
+- **Positions**: Yellow at (0, 0.20), Orange at (0.035, 0.25)
+- **Heights**: World cubes at z=0.05m, planning scene at z=0.0125m
+- **Ground plane**: Planning scene at z=-0.005m
 - **Physics**: Enhanced friction parameters to prevent slipping
-- **Collision**: Automatic collision detection during spawning
 
 ### Robot Configuration
 - **DOF**: 6-axis arm + 1 gripper joint
-- **Planning**: OMPL algorithms with Cartesian path planning
+- **Planning**: OMPL algorithms with Cartesian path planning and retry mechanisms
 - **Speed**: 75% of maximum velocity for stable operation
-- **Gripper**: Position control from 0 (closed) to 100 (open)
-
-### Timing Parameters
-- **Gazebo Startup**: 10-second delay
-- **Stacking Manager**: 45-second delay after Gazebo
-- **Grasp Hold**: 1 second at grasp position
-- **Release Confirmation**: 1 second after cube release
+- **Gripper**: Direct control from -0.5 (closed) to 0.0 (open)
 
 ## Usage Examples
 
@@ -154,20 +141,12 @@ ros2 launch mycobot_stacking_project fixed_stacking_task.launch.py
 ### Data Collection
 
 ```bash
-# Single episode with custom output directory
-ros2 launch mycobot_stacking_project collect_data.launch.py \
-  output_base_dir:=~/my_episodes \
-  log_frequency_hz:=10.0
+# Single episode (saves to ~/mycobot_episodes_degrees by default)
+ros2 launch mycobot_stacking_project collect_data.launch.py
 
-# With randomized cube positions
+# With custom output directory
 ros2 launch mycobot_stacking_project collect_data.launch.py \
-  output_base_dir:=~/mycobot_episodes \
-  yellow_min_x:=0.15 yellow_max_x:=0.25 \
-  yellow_min_y:=-0.05 yellow_max_y:=0.05 \
-  orange_min_x:=0.25 orange_max_x:=0.35 \
-  orange_min_y:=-0.05 orange_max_y:=0.05 \
-  min_distance_between_cubes:=0.08 \
-  randomize_positions:=true
+  output_base_dir:=~/my_episodes_degrees
 ```
 
 ## Integration
@@ -192,10 +171,10 @@ The package provides the simulation environment for diffusion policy inference:
 
 ### Common Issues
 
-1. **Cubes not spawning**: Check Gazebo model paths and ensure models are properly installed
-2. **Planning failures**: Increase planning time or adjust cube positions
-3. **Gripper issues**: Verify gripper controller configuration and joint limits
-4. **Timing issues**: Ensure proper delays between node startups
+1. **Launch failures**: Always run process cleanup before launching
+2. **Planning failures**: Rebuild workspace before launching
+3. **Gripper issues**: Gripper uses direct control, not MoveIt gripper control
+4. **Data collection**: Episodes save to `~/mycobot_episodes_degrees/` in degrees format
 
 ### Debug Commands
 
@@ -203,14 +182,14 @@ The package provides the simulation environment for diffusion policy inference:
 # Check planning scene
 ros2 topic echo /planning_scene
 
-# Monitor cube spawner status
-ros2 topic echo /cube_spawner/status
-
 # Check MoveIt planning
 ros2 topic echo /move_group/status
 
 # View robot state
 ros2 topic echo /joint_states
+
+# Process cleanup
+pkill -9 -f "ros2|gazebo|gz|rviz2|robot_state_publisher|move_group|cube_spawner|stacking_manager"
 ```
 
 ## Dependencies

@@ -15,17 +15,13 @@ The package provides a complete inference pipeline:
    - Publishes joint commands to robot controllers
    - Supports GPU acceleration for fast inference
 
-2. **Simulation Launch** (`simulation_inference.launch.py`):
-   - Starts Gazebo with cube stacking world
-   - Launches MoveIt 2 for robot planning scene
-   - Spawns randomized cube positions
-   - Initializes camera and robot controllers
-   - Starts inference node with model loading
+2. **Launch Files**:
+   - `simulation_inference.launch.py`: Complete inference setup with Gazebo
+   - `model_inference_only.launch.py`: Inference node only
 
-3. **Convenience Scripts**:
-   - `run_simulation_inference.sh`: Complete simulation setup
-   - `setup_venv.sh`: Virtual environment configuration
-   - Wrapper scripts for easy execution
+3. **Utility Scripts**:
+   - `setup_venv.sh`: Automated virtual environment setup
+   - `run_simulation_inference.sh`: Convenience script for launching inference
 
 ### Key Features
 
@@ -33,7 +29,6 @@ The package provides a complete inference pipeline:
 - **ResNet34 Vision**: Pre-trained backbone for robust visual processing
 - **Diffusion Sampling**: DDPM-based action generation
 - **GPU Acceleration**: CUDA support for fast inference
-- **Model Flexibility**: Support for different checkpoint formats
 
 ## Prerequisites
 
@@ -48,7 +43,7 @@ The package provides a complete inference pipeline:
 - **Checkpoint Format**: PyTorch .pth file with model_state_dict and args
 - **Architecture**: ResNet34 + MLP (7-dimensional output)
 - **Input Resolution**: 424x240 RGB images
-- **Training Data**: Preferably degrees format for better sensitivity
+- **Training Data**: Degrees format for better sensitivity
 
 ## Installation
 

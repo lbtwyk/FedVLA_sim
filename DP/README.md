@@ -1,15 +1,15 @@
 # Diffusion Policy Training System
 
-A comprehensive PyTorch-based training system for visuomotor diffusion policies. This system trains neural networks to predict robot actions from camera images using diffusion models, enabling robust robot control for cube stacking tasks.
+A PyTorch-based training system for visuomotor diffusion policies. This system trains neural networks to predict robot actions from camera images using diffusion models for cube stacking tasks.
 
 ## Overview
 
 The diffusion policy training system implements:
 
 - **ResNet34 Vision Backbone**: Pre-trained feature extraction from 424x240 camera images
-- **Diffusion Model Architecture**: State-of-the-art generative model for robot control
+- **Diffusion Model Architecture**: Generative model for robot control
 - **Multi-Layer Perceptron**: Action prediction with 6 joint angles + 1 gripper value
-- **Robust Training Pipeline**: Automated training with checkpointing and validation
+- **Training Pipeline**: Automated training with checkpointing
 
 ## System Architecture
 
@@ -67,14 +67,12 @@ DP/
 **Input Data Structure**:
 ```
 ~/mycobot_episodes_degrees/
-├── episode_20250524_143022_123/
+├── episode_YYYYMMDD_HHMMSS_mmm/
 │   ├── states.json              # Joint states in degrees
 │   └── frame_dir/               # Camera images
 │       ├── image_00000.png
 │       ├── image_00001.png
 │       └── ...
-└── episode_20250524_143155_456/
-    └── ...
 ```
 
 **states.json Format**:
@@ -119,36 +117,19 @@ cd ~/ros2_ws/DP
 # Activate virtual environment
 source ~/.venvs/diffusion_policy/bin/activate
 
-# Run training
-python train.py \
-  --data_dir ~/mycobot_episodes_degrees \
-  --output_dir ./checkpoints \
-  --num_epochs 1000 \
-  --batch_size 32 \
-  --learning_rate 1e-4
-```
-
-**Using Training Script**:
-```bash
-# Make script executable
-chmod +x run.sh
-
-# Run with default parameters
+# Run training with default parameters
 ./run.sh
 
-# Or edit run.sh for custom configuration
+# Or run manually
+python train.py \
+  --data_dir ~/mycobot_episodes_degrees \
+  --output_dir ./checkpoints
 ```
 
 **Resume Training**:
 ```bash
 # Resume from checkpoint
 ./resume_training.sh
-
-# Or manually
-python train.py \
-  --data_dir ~/mycobot_episodes_degrees \
-  --output_dir ./checkpoints \
-  --resume_from ./checkpoints/model_epoch_500.pth
 ```
 
 ### Training Parameters
@@ -197,7 +178,7 @@ model.eval()
 # Run inference
 with torch.no_grad():
     predicted_action = p_sample_loop(
-        model, 
+        model,
         shape=(1, 7),
         timesteps=1000,
         image_input=image_tensor
@@ -227,7 +208,7 @@ ros2 launch diffusion_policy_inference simulation_inference.launch.py \
 - Recommended for inference
 
 **model_best-3.pth**:
-- Training episodes: ~300 episodes  
+- Training episodes: ~300 episodes
 - Data format: Degrees
 - Performance: Enhanced precision
 - Alternative checkpoint

@@ -1,37 +1,32 @@
-# FedVLA_sim - Cube Stacking with Diffusion Policy
+# myCobot Cube Stacking with Visuomotor Diffusion Policy
 
-A comprehensive ROS 2 simulation project for robotic cube stacking using the myCobot 280 robot arm in Gazebo. This project demonstrates both traditional motion planning and modern diffusion policy-based control for precise manipulation tasks.
+A ROS 2 workspace for cube stacking simulation using the myCobot 280 robot arm. This project combines traditional motion planning with visuomotor diffusion policy inference for robotic manipulation tasks.
 
 ## Overview
 
-This project implements a complete cube stacking pipeline with multiple control approaches:
+This workspace implements a complete pipeline for:
 
-### Traditional Motion Planning
-1. Spawns colored cubes (yellow and orange) in a Gazebo simulation
-2. Adds the cubes to the MoveIt planning scene
-3. Controls the myCobot 280 robot arm using MoveIt 2 to:
-   - Locate the yellow cube
-   - Pick it up with the gripper
-   - Move it to the orange cube
-   - Place it precisely on top
-   - Return to the home position
+1. **Traditional Motion Planning**: MoveIt 2-based deterministic cube stacking
+2. **Data Collection**: Automated trajectory recording for machine learning training
+3. **Diffusion Policy Training**: Neural network training for visuomotor control
+4. **Model Inference**: Real-time robot control using trained diffusion policies
 
-### Diffusion Policy Control
-1. Collects trajectory data from traditional motion planning
-2. Trains a visuomotor diffusion policy model using camera images and robot states
-3. Performs inference using the trained model to control the robot directly
-4. Provides visualization tools to evaluate model performance
+### Key Features
 
-The project uses ROS 2 Jazzy Jalisco, MoveIt 2 for motion planning, and PyTorch for diffusion policy training and inference.
+- **Simulation Environment**: Gazebo Garden with enhanced physics and friction
+- **Robot Control**: myCobot 280 6-DOF arm with gripper control
+- **Vision System**: 424x240 camera feed for visuomotor learning
+- **Data Pipeline**: Synchronized joint states, gripper positions, and camera images
+- **Machine Learning**: PyTorch-based diffusion policy training and inference
+- **Robust Planning**: Retry mechanisms and fallback strategies
 
 ## System Requirements
 
-- Ubuntu 24.04 (can run in WSL2 with GPU acceleration)
-- ROS 2 Jazzy Jalisco
-- Gazebo Garden
-- MoveIt 2
-- Python 3.10+ with PyTorch for diffusion policy
-- NVIDIA GPU with WSL2 drivers (for optimal performance)
+- **OS**: Ubuntu 24.04 (WSL2 supported)
+- **ROS**: ROS 2 Jazzy Jalisco
+- **Simulator**: Gazebo Garden
+- **GPU**: NVIDIA GPU with CUDA support (recommended)
+- **Python**: 3.10+ with PyTorch
 
 ## Project Structure
 
@@ -48,28 +43,27 @@ The project uses ROS 2 Jazzy Jalisco, MoveIt 2 for motion planning, and PyTorch 
 │   │   │   └── stacking_manager_node.cpp     # Motion planning and control
 │   │   ├── worlds/                  # Gazebo world files
 │   │   ├── models/                  # Cube models (yellow/orange)
-│   │   └── rviz/                    # RViz configurations
-│   ├── diffusion_policy_inference/  # Diffusion policy inference package
-│   │   ├── diffusion_policy_inference/      # Python inference node
-│   │   ├── launch/                  # Inference launch files
-│   │   └── scripts/                 # Convenience scripts
+│   │   └── urdf/                    # Robot descriptions with friction
+│   ├── diffusion_policy_inference/  # Model inference package
+│   │   ├── diffusion_policy_inference/       # Python inference nodes
+│   │   ├── launch/                           # Inference launch files
+│   │   └── scripts/                          # Utility scripts
 │   ├── trajectory_data_collector/   # Data collection system
-│   │   └── trajectory_data_collector/       # State logging and episode management
+│   │   └── trajectory_data_collector/        # State logging implementation
 │   ├── trajectory_data_interfaces/  # Custom ROS 2 interfaces
-│   │   └── srv/                     # Service definitions for data collection
-│   └── mycobot_ros2/               # Base myCobot ROS 2 packages
-│       ├── mycobot_description/     # Robot URDF and meshes
-│       ├── mycobot_gazebo/         # Gazebo integration
-│       ├── mycobot_moveit_config/  # MoveIt configuration
-│       └── ...                     # Additional myCobot packages
-├── DP/                             # Diffusion Policy training system
-│   ├── model.py                    # Neural network architecture (ResNet34 + MLP)
-│   ├── train.py                    # Training script with diffusion sampling
+│   │   └── srv/                              # Service definitions
+│   └── mycobot_ros2/               # Robot description and configuration
+│       ├── mycobot_description/              # URDF and meshes
+│       ├── mycobot_gazebo/                   # Gazebo integration
+│       └── mycobot_moveit_config/            # MoveIt configuration
+├── DP/                             # Diffusion policy training system
+│   ├── model.py                    # Neural network architecture
+│   ├── train.py                    # Training script
 │   ├── dataset.py                  # Data loading and preprocessing
-│   ├── checkpoints/                # Trained model checkpoints
-│   └── requirements.txt            # Python dependencies
-├── mycobot_episodes/               # Collected trajectory data (radians)
-├── mycobot_episodes_degrees/       # Collected trajectory data (degrees)
+│   ├── inference*.py               # Various inference implementations
+│   ├── requirements.txt            # Python dependencies
+│   └── checkpoints/                # Trained model files
+├── mycobot_episodes_degrees/       # Collected training data
 ├── collect_multiple_episodes.sh    # Automated data collection script
 ├── launch_cube_stacking.sh        # Convenience launch script
 ├── run_inference_visualization.sh  # Inference visualization script
@@ -93,26 +87,23 @@ The project uses ROS 2 Jazzy Jalisco, MoveIt 2 for motion planning, and PyTorch 
 
 ## Key Components
 
-### Stacking Manager Node
-The `StackingManagerNode` implements traditional motion planning logic:
-- Waits for cubes to be detected in the planning scene
-- Executes pick-and-place operations using MoveIt 2
-- Supports both Cartesian and joint-space planning
-- Includes robust error handling and retry mechanisms
+### Cube Stacking System
+- **Cube Dimensions**: 2.5cm x 2.5cm x 2.5cm cubes (yellow and orange)
+- **Cube Positioning**: Yellow at (0, 0.20), Orange at (0.035, 0.25) in world coordinates
+- **Heights**: World cubes at z=0.05m, planning scene at z=0.0125m
+- **Gripper Control**: Position range from -0.5 (closed) to 0.0 (open)
+
+### Motion Planning
+- **Movement Heights**: Pre-grasp z=0.15m, Grasp z=0.11m, Lift z=0.15m, Place z=0.14m
+- **Planning**: MoveIt 2 with Cartesian path planning and retry mechanisms
+- **Speed**: 75% of maximum velocity for stability
+- **Timing**: 0.2s confirmation times with immediate retry on failure
 
 ### Diffusion Policy Model
-The diffusion policy system includes:
-- **ResNet34 backbone** for visual feature extraction from 424x240 camera images
-- **MLP network** for state prediction with 6 joint angles + 1 gripper value
-- **Diffusion sampling** for robust action generation
-- **Real-time inference** at 10Hz for smooth robot control
-
-### Data Collection System
-Automated trajectory data collection with:
-- Synchronized camera images and robot states
-- Configurable recording frequency (default: 10Hz)
-- Episode management and validation tools
-- Support for both radians and degrees joint representations
+- **Vision**: ResNet34 backbone for 424x240 camera images
+- **Output**: 7-dimensional action (6 joints + 1 gripper)
+- **Training Data**: Degrees format for better model sensitivity
+- **Inference**: 10Hz real-time control
 
 ## Installation
 
@@ -147,25 +138,17 @@ Automated trajectory data collection with:
 
 ### 2. Python Virtual Environment Setup
 
-For diffusion policy training and inference, set up a Python virtual environment:
+For diffusion policy training and inference:
 
-1. Create and activate virtual environment:
-   ```bash
-   python3 -m venv ~/.venvs/diffusion_policy
-   source ~/.venvs/diffusion_policy/bin/activate
-   ```
+```bash
+# Create and activate virtual environment
+python3 -m venv ~/.venvs/diffusion_policy
+source ~/.venvs/diffusion_policy/bin/activate
 
-2. Install Python dependencies:
-   ```bash
-   cd ~/ros2_ws/DP
-   pip install -r requirements.txt
-   ```
-
-3. Or use the provided setup script:
-   ```bash
-   cd ~/ros2_ws/src/diffusion_policy_inference
-   ./setup_venv.sh
-   ```
+# Install dependencies
+cd ~/ros2_ws/DP
+pip install -r requirements.txt
+```
 
 ## Usage
 
@@ -195,10 +178,10 @@ ros2 launch mycobot_stacking_project fixed_stacking_task.launch.py
 Collect trajectory data for diffusion policy training:
 ```bash
 # Single episode
-ros2 launch mycobot_stacking_project collect_data.launch.py output_base_dir:=~/mycobot_episodes
+ros2 launch mycobot_stacking_project collect_data.launch.py output_base_dir:=~/mycobot_episodes_degrees
 
 # Multiple episodes (automated)
-./collect_multiple_episodes.sh --num-episodes 50 --output-dir ~/mycobot_episodes_degrees
+./collect_multiple_episodes.sh
 ```
 
 #### 3. Diffusion Policy Inference
@@ -210,11 +193,6 @@ source ~/.venvs/diffusion_policy/bin/activate
 
 # Run inference visualization
 ./run_inference_visualization.sh
-
-# Or run inference directly
-ros2 launch diffusion_policy_inference simulation_inference.launch.py \
-  checkpoint_path:=/home/wangyukun/ros2_ws/DP/checkpoints/model_best-2.pth \
-  model_dir:=/home/wangyukun/ros2_ws/DP
 ```
 
 ### Episode Management
@@ -222,79 +200,41 @@ ros2 launch diffusion_policy_inference simulation_inference.launch.py \
 Check and manage collected episodes:
 ```bash
 # Check episode status
-python3 check_episodes.py scan
+python3 check_episodes.py scan --dir ~/mycobot_episodes_degrees
 
 # Clean up failed episodes
 python3 check_episodes.py clean
 ```
 
-## Key Features
-
-### Simulation and Control
-- **Enhanced Friction**: Increased friction parameters to prevent cubes from slipping during manipulation
-- **Robust Motion Planning**: Uses MoveIt's planning capabilities with increased planning time and attempts
-- **Dual Control Modes**: Traditional motion planning and modern diffusion policy control
-- **Real-time Performance**: 10Hz inference rate for smooth robot control
-
-### Data Collection and Training
-- **Automated Data Collection**: Multi-episode collection with randomized cube positions
-- **Synchronized Recording**: Camera images (424x240) and robot states at 10Hz
-- **Episode Validation**: Automatic detection and cleanup of failed episodes
-- **Flexible Data Formats**: Support for both radians and degrees joint representations
-
-### Machine Learning
-- **ResNet34 Vision Backbone**: Pre-trained feature extraction for robust visual processing
-- **Diffusion Policy**: State-of-the-art generative model for robot control
-- **GPU Acceleration**: CUDA support for training and inference
-- **Model Checkpointing**: Automatic saving of best models during training
-
 ## Configuration
 
-### Camera Settings
-- **Resolution**: 424x240 pixels (optimized for diffusion policy)
-- **Frame Rate**: 10Hz for data collection and inference
-- **Topic**: `/camera_head/color/image_raw`
-
-### Robot Configuration
-- **Joints**: 6 DOF arm + 1 gripper (7 total states)
-- **Gripper Range**: 0 (closed) to 100 (open)
-- **Planning Algorithm**: OMPL with Cartesian path planning
-- **Speed**: 75% of maximum for stable operation
-
-### Model Paths
-- **Trained Model**: `/home/wangyukun/ros2_ws/DP/checkpoints/model_best-2.pth`
-- **Training Data**: `~/mycobot_episodes_degrees/` (degrees format recommended)
-- **Virtual Environment**: `~/.venvs/diffusion_policy`
+### Key Parameters
+- **Cube Positions**: Yellow (0, 0.20), Orange (0.035, 0.25)
+- **Cube Heights**: World z=0.05m, Planning scene z=0.0125m
+- **Gripper Range**: -0.5 (closed) to 0.0 (open)
+- **Movement Heights**: Pre-grasp 0.15m, Grasp 0.11m, Lift 0.15m, Place 0.14m
+- **Data Collection**: 10Hz frequency, degrees format
+- **Camera**: 424x240 resolution at `/camera_head/color/image_raw`
 
 ## Troubleshooting
 
 ### Common Issues
-- **Cube Slipping**: Check friction parameters in URDF and world files
-- **Planning Failures**: Increase planning time and attempts in stacking manager
-- **Model Loading Errors**: Ensure checkpoint file exists and virtual environment is activated
-- **Launch Errors**: Always terminate existing processes before launching new ones
+- **Launch Errors**: Always run `pkill -9 -f "ros2|gazebo|gz|rviz2|robot_state_publisher|move_group|cube_spawner|stacking_manager"` before launching
+- **Planning Failures**: Rebuild workspace with `colcon build` before launching
+- **Model Loading**: Ensure checkpoint exists and virtual environment is activated
+- **Data Collection**: Episodes save to `~/mycobot_episodes_degrees/` in degrees format
 
 ### Debug Commands
 ```bash
-# Check ROS 2 topics
+# Check topics
 ros2 topic list | grep -E 'joint_states|camera|move_group'
-
-# Monitor episode collection
-tail -f /tmp/episode_output.log
-
-# Check virtual environment
-echo $VIRTUAL_ENV
 
 # Validate episodes
 python3 check_episodes.py scan --dir ~/mycobot_episodes_degrees
+
+# Check virtual environment
+echo $VIRTUAL_ENV
 ```
-
-## Development Notes
-
-- **Build Requirement**: Rebuild workspace after code changes: `colcon build --symlink-install`
-- **Cube Dimensions**: 2.5cm cubes with randomized positions
-- **Timing**: 10-second Gazebo startup delay, 45-second stacking manager delay
-- **Testing**: Use RViz motion planning panel for interactive parameter adjustment
 
 ## License
 

@@ -1,14 +1,14 @@
 # Trajectory Data Collector
 
-A ROS 2 package for collecting synchronized robot trajectory data including joint states, gripper positions, and camera images. This package is designed to gather training data for visuomotor diffusion policy models.
+A ROS 2 package for collecting synchronized robot trajectory data including joint states, gripper positions, and camera images. This package gathers training data for visuomotor diffusion policy models.
 
 ## Overview
 
-The trajectory data collector provides a comprehensive system for recording robot demonstrations:
+The trajectory data collector provides a system for recording robot demonstrations:
 
 - **State Logger Node**: Records synchronized robot states and camera images
 - **Episode Management**: Automatic episode creation and data organization
-- **Flexible Configuration**: Configurable recording frequency and data formats
+- **Configurable Recording**: Recording frequency and data formats
 - **Service Interface**: Start/stop recording via ROS 2 services
 
 ## Package Structure
@@ -55,8 +55,8 @@ The main data collection node that records synchronized robot states and camera 
 - `image_dir_name` (string): Directory name for images within episodes (default: "frame_dir")
 
 **Gripper Mapping**:
-- `gripper_value_min_rad` (double): Minimum gripper position in radians (default: -0.5)
-- `gripper_value_max_rad` (double): Maximum gripper position in radians (default: 0.0)
+- `gripper_value_min_rad` (double): Minimum gripper position -0.5 (closed)
+- `gripper_value_max_rad` (double): Maximum gripper position 0.0 (open)
 - `gripper_value_output_min_int` (int): Minimum output value (default: 0)
 - `gripper_value_output_max_int` (int): Maximum output value (default: 100)
 
@@ -170,9 +170,9 @@ output_base_dir: "~/high_freq_episodes"
 For different robot configurations:
 
 ```yaml
-arm_joint_names: 
+arm_joint_names:
   - "joint1"
-  - "joint2" 
+  - "joint2"
   - "joint3"
   - "joint4"
   - "joint5"
@@ -204,14 +204,14 @@ def load_episode(episode_dir):
     # Load states
     with open(os.path.join(episode_dir, 'states.json'), 'r') as f:
         states = json.load(f)
-    
+
     # Load images
     images = []
     for state in states:
         img_path = os.path.join(episode_dir, state['image'])
         image = cv2.imread(img_path)
         images.append(image)
-    
+
     return states, images
 ```
 
@@ -221,21 +221,21 @@ def load_episode(episode_dir):
 def validate_episode(episode_dir):
     states_file = os.path.join(episode_dir, 'states.json')
     frame_dir = os.path.join(episode_dir, 'frame_dir')
-    
+
     # Check files exist
     if not os.path.exists(states_file):
         return False, "Missing states.json"
-    
+
     if not os.path.exists(frame_dir):
         return False, "Missing frame_dir"
-    
+
     # Load and validate states
     with open(states_file, 'r') as f:
         states = json.load(f)
-    
+
     if len(states) < 5:
         return False, "Too few frames"
-    
+
     return True, "Valid episode"
 ```
 
