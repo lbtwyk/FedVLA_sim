@@ -159,7 +159,6 @@ def generate_launch_description():
 
     pkg_mycobot_stacking_project = FindPackageShare('mycobot_stacking_project')
     pkg_mycobot_moveit_config = FindPackageShare('mycobot_moveit_config')
-    pkg_mycobot_mtc_pick_place_demo = FindPackageShare('mycobot_mtc_pick_place_demo')
 
     # Setup Gazebo model resource path for custom cube models
     models_path = PathJoinSubstitution([pkg_mycobot_stacking_project, 'models'])
@@ -210,25 +209,8 @@ def generate_launch_description():
         }.items()
     )
 
-    # Planning Scene Server launch
-    planning_scene_server_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution([pkg_mycobot_mtc_pick_place_demo, 'launch', 'get_planning_scene_server.launch.py'])
-        ),
-        launch_arguments={
-            'use_sim_time': use_sim_time,
-        }.items()
-    )
-
-    # Add a remapping for the planning scene service
-    planning_scene_remapper = Node(
-        package='topic_tools',
-        executable='relay',
-        name='planning_scene_remapper',
-        arguments=['/get_planning_scene_mycobot', '/get_planning_scene'],
-        parameters=[{'use_sim_time': use_sim_time}],
-        output='screen'
-    )
+    # Note: Planning scene functionality is provided by move_group
+    # No separate planning scene server needed
 
     # Create a function to configure MoveIt and RViz
     def configure_moveit_rviz(context):
@@ -315,6 +297,24 @@ def generate_launch_description():
         ]
     )
 
+    # Image Bridge for camera data
+    # This bridges Gazebo camera topics to ROS topics for data collection
+    image_bridge_node = Node(
+        package='ros_gz_image',
+        executable='image_bridge',
+        name='image_bridge',
+        output='screen',
+        arguments=[
+            '/camera_head/depth_image',
+            '/camera_head/image',
+        ],
+        remappings=[
+            ('/camera_head/depth_image', '/camera_head/depth/image_rect_raw'),
+            ('/camera_head/image', '/camera_head/color/image_raw'),
+        ],
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+
     # State Logger Node for data collection
     state_logger_node = Node(
         package='trajectory_data_collector',
@@ -368,10 +368,15 @@ def generate_launch_description():
         )
     ])
 
-    # Group 2: Start state logger and stacking manager in parallel
-    # Both depend on Gazebo, MoveIt, and cube spawner being initialized
+    # Group 2: Start image bridge, state logger and stacking manager in parallel
+    # All depend on Gazebo, MoveIt, and cube spawner being initialized
     parallel_group_2 = GroupAction([
-        # Start state logger
+        # Start image bridge early to provide camera data
+        TimerAction(
+            period=8.0,  # Start image bridge early
+            actions=[image_bridge_node]
+        ),
+        # Start state logger after image bridge is ready
         TimerAction(
             period=10.0,  # Increased from 8.0 seconds to give more time for controllers to initialize
             actions=[state_logger_node]
@@ -400,8 +405,6 @@ def generate_launch_description():
         # Then start Gazebo with the generated world file (only after cube spawner has exited)
         gazebo_launch_after_cube_spawner,
         move_group_launch,
-        planning_scene_server_launch,
-        planning_scene_remapper,
         rviz_node,
         # Add parallel group 1: camera position
         parallel_group_1,

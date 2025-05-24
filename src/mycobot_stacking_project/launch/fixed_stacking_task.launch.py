@@ -46,7 +46,6 @@ def generate_launch_description():
     robot_name = LaunchConfiguration("robot_name")
     pkg_mycobot_stacking_project = FindPackageShare('mycobot_stacking_project')
     pkg_mycobot_moveit_config = FindPackageShare('mycobot_moveit_config')
-    pkg_mycobot_mtc_pick_place_demo = FindPackageShare('mycobot_mtc_pick_place_demo')
 
     # Setup Gazebo model resource path for custom cube models
     models_path = PathJoinSubstitution([pkg_mycobot_stacking_project, 'models'])
@@ -91,25 +90,8 @@ def generate_launch_description():
         }.items()
     )
 
-    # Planning Scene Server launch
-    planning_scene_server_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution([pkg_mycobot_mtc_pick_place_demo, 'launch', 'get_planning_scene_server.launch.py'])
-        ),
-        launch_arguments={
-            'use_sim_time': use_sim_time,
-        }.items()
-    )
-
-    # Add a remapping for the planning scene service
-    planning_scene_remapper = Node(
-        package='topic_tools',
-        executable='relay',
-        name='planning_scene_remapper',
-        arguments=['/get_planning_scene_mycobot', '/get_planning_scene'],
-        parameters=[{'use_sim_time': use_sim_time}],
-        output='screen'  # Add output='screen' for better visibility
-    )
+    # Note: Planning scene functionality is provided by move_group
+    # No separate planning scene server needed
 
     # Create a function to configure MoveIt and RViz
     def configure_moveit_rviz(context):
@@ -229,8 +211,6 @@ def generate_launch_description():
         # Add the camera position setting with a delay
         delayed_camera_position,
         move_group_launch,
-        planning_scene_server_launch,  # Add the planning scene server
-        planning_scene_remapper,       # Add the planning scene service remapper
         rviz_node,
         # Add the cube spawner with a delay
         delayed_cube_spawner,
