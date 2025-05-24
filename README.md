@@ -82,9 +82,6 @@ This workspace implements a complete pipeline for:
 - **[Diffusion Policy Training](DP/README.md)** - Model training and architecture
 - **[Data Collection Guide](DATA_COLLECTION.md)** - Detailed data collection documentation
 
-### Base Robot Support
-- **[myCobot ROS 2](src/mycobot_ros2/README.md)** - Base robot packages and simulation
-
 ## Key Components
 
 ### Cube Stacking System
@@ -243,6 +240,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Author
 
 Yukun Wang (lambert.wang.23@ucl.ac.uk)
+
+## Acknowledgments
+
+This project uses the myCobot ROS 2 packages developed by Automatic Addison. The base robot packages and simulation components are adapted from the [mycobot_ros2](https://github.com/automaticaddison/mycobot_ros2) repository.
+
+**Copyright Notice**: The myCobot ROS 2 base packages are copyright © Automatic Addison and are used under their respective license terms.
 
 ---
 
