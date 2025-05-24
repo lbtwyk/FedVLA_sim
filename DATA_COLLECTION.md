@@ -82,7 +82,7 @@ The `states.json` file contains an array of entries in the following format:
 ]
 ```
 
-- `angles`: Joint angles in radians for the 6 robot joints
+- `angles`: Joint angles in degrees for the 6 robot joints (converted from radians)
 - `gripper_value`: Gripper position mapped from joint angle to 0-100 range (0=open, 100=closed)
 - `image`: Relative path to the corresponding image file
 

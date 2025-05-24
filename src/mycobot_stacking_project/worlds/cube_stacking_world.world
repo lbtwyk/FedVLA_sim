@@ -12,29 +12,31 @@
       <render_engine>ogre2</render_engine>
     </plugin>
 
-    <!-- Light Source -->
-    <light type="directional" name="sun">
-      <cast_shadows>true</cast_shadows>
-      <pose>0 0 10 0 0 0</pose>
-      <diffuse>0.8 0.8 0.8 1</diffuse>
-      <specular>0.2 0.2 0.2 1</specular>
-      <attenuation>
-        <range>1000</range>
-        <constant>0.9</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
-      </attenuation>
-      <direction>-0.5 0.1 -0.9</direction>
-    </light>
+    <!-- To add realistic gravity, do: 0.0 0.0 -9.8, otherwise do 0.0 0.0 0.0 -->
+    <gravity>0.0 0.0 -9.8</gravity>
 
-    <!-- Ground Plane -->
+    <!-- Include a model of the Sun from an external URI -->
     <include>
-      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground%20Plane</uri>
+      <uri>
+        https://fuel.gazebosim.org/1.0/OpenRobotics/models/Sun
+      </uri>
     </include>
+
+    <!-- Include a model of the Ground Plane from an external URI -->
+    <include>
+      <uri>
+        https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground Plane
+      </uri>
+    </include>
+
+    <!-- Define scene properties -->
+    <scene>
+      <shadows>false</shadows>
+    </scene>
 
     <!-- Yellow Cube -->
     <model name="yellow_cube">
-      <pose>0 0.20 0.05 0 0 0</pose>
+      <pose>0 0.20 0.0125 0 0 0</pose>
       <link name="link">
         <inertial>
           <mass>0.05</mass>
@@ -98,7 +100,7 @@
 
     <!-- Orange Cube -->
     <model name="orange_cube">
-      <pose>0.035 0.25 0.05 0 0 0</pose>
+      <pose>0.035 0.25 0.0125 0 0 0</pose>
       <link name="link">
         <inertial>
           <mass>0.05</mass>

@@ -95,14 +95,12 @@ private:
    * @brief Move the arm using a Cartesian path for smoother, more predictable movements.
    * @param target_pose The target pose.
    * @param description Description of the movement for logging.
-   * @param jump_threshold The jump threshold for validating the path (0.0 disables it).
    * @param eef_step The end effector step size for Cartesian path generation.
    * @return True if successful, false otherwise.
    */
   bool move_with_cartesian_path(
       const geometry_msgs::msg::PoseStamped& target_pose,
       const std::string& description,
-      double jump_threshold = 0.0,
       double eef_step = 0.01);
 
   /**

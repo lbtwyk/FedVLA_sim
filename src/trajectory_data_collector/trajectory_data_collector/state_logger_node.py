@@ -104,13 +104,14 @@ class StateLoggerNode(Node):
             callback_group=self.timer_callback_group
         )
 
-        # Create service server
+        # Create service server with absolute name for better visibility
         self.service = self.create_service(
             StartStopEpisode,
-            '~/start_stop_episode',
+            '/state_logger_node/start_stop_episode',  # Use absolute path instead of relative
             self.handle_start_stop_service,
             callback_group=self.service_callback_group
         )
+        self.get_logger().info("Registered data collection service at: /state_logger_node/start_stop_episode")
 
         self.get_logger().info('State Logger Node initialized')
         self.get_logger().info(f'Output directory: {self.output_base_dir}')
@@ -159,12 +160,14 @@ class StateLoggerNode(Node):
             self.get_logger().error(f'Error processing image: {str(e)}')
             return
 
-        # Process Arm Joint Angles
+        # Process Arm Joint Angles (convert from radians to degrees)
         ordered_arm_angles = []
         for joint_name in self.arm_joint_names:
             if joint_name in self.latest_joint_states_msg.name:
                 index = self.latest_joint_states_msg.name.index(joint_name)
-                ordered_arm_angles.append(float(self.latest_joint_states_msg.position[index]))
+                angle_rad = float(self.latest_joint_states_msg.position[index])
+                angle_deg = angle_rad * 180.0 / 3.14159265359  # Convert radians to degrees
+                ordered_arm_angles.append(angle_deg)
             else:
                 self.get_logger().warn(f'Joint {joint_name} not found in joint states')
                 ordered_arm_angles.append(0.0)  # Default value if joint not found

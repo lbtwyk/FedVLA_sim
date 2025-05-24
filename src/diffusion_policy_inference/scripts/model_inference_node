@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import rclpy
+from diffusion_policy_inference.model_inference_node import main
+
+if __name__ == '__main__':
+    main()

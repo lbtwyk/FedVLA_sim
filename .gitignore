@@ -140,3 +140,9 @@ ENV/
 
 src/moveit_task_constructor/
 src/warehouse_ros_mongo/
+original_scripts/
+test_arm_positions.py
+
+# Diffusion Policy checkpoints (large model files)
+DP/checkpoints/
+*.pth
