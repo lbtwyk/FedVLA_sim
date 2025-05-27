@@ -95,25 +95,30 @@ ls -la ~/ros2_ws/DP/
 
 ### Quick Start
 
-**Recommended approach using the visualization script**:
+**The primary and recommended method for running inference is using the `run_realtime_inference.sh` script located in the root of your `ros2_ws` workspace.**
 
 ```bash
-# Activate virtual environment
-source ~/.venvs/diffusion_policy/bin/activate
-
-# Run inference visualization
 cd ~/ros2_ws
-./run_inference_visualization.sh
+./run_realtime_inference.sh --checkpoint_path ./DP/checkpoints/model_best.pth # Or your desired checkpoint
 ```
 
-This script automatically:
-- Uses the default model checkpoint (`model_best-2.pth`)
-- Sets up proper camera and simulation parameters
-- Provides real-time visualization of model predictions
+This comprehensive script handles the entire process:
+- **Environment Setup:** Configures Gazebo for performance and ROS 2 logging.
+- **Simulation Launch:** Starts Gazebo with the `cube_stacking_world.world` and the myCobot robot, applying necessary friction and real-time settings.
+- **Camera Initialization:** Sets the Gazebo camera to the correct viewpoint for the policy.
+- **Inference Execution:** 
+    - Activates the appropriate Python virtual environment (e.g., `~/.venvs/diffusion_policy`).
+    - Executes the `inference_realtime.py` script (located in `~/ros2_ws/DP/`) which loads the diffusion policy model and performs inference.
+- **Parameterization:** Offers numerous command-line arguments to customize the model checkpoint, inference rate, robot behavior, visualization, and more. Use `./run_realtime_inference.sh --help` to see all available options.
+- **Process Management:** Reliably starts and stops Gazebo and the Python inference process, including cleanup on exit.
 
-### Manual Launch Options
+This script is the sole supported method for running real-time inference with the diffusion policy model.
 
-#### 1. Using Convenience Script
+### Legacy Launch Options (Informational)
+
+The following methods are older ways to launch parts of the inference system and are provided for informational or debugging purposes only. **For standard operation, use `run_realtime_inference.sh`.**
+
+#### 1. Using Convenience Script (Deprecated)
 
 ```bash
 cd ~/ros2_ws

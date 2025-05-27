@@ -187,15 +187,27 @@ with torch.no_grad():
 
 ### ROS 2 Integration
 
-The trained models integrate with the ROS 2 inference system:
+The trained models are primarily used with the ROS 2 real-time inference system, launched via the `run_realtime_inference.sh` script located in the root of the workspace. This script handles the setup of the Gazebo simulation environment, camera positioning, and executes the `inference_realtime.py` script for policy deployment.
+
+For more details on the ROS 2 integration and alternative launch methods, refer to the README in the `diffusion_policy_inference` package.
+
+### Real-time Inference (Recommended)
+
+The primary method for running inference is using the `run_realtime_inference.sh` script located at the root of the `ros2_ws` workspace.
 
 ```bash
-# Run inference in simulation
-source ~/.venvs/diffusion_policy/bin/activate
-ros2 launch diffusion_policy_inference simulation_inference.launch.py \
-  checkpoint_path:=~/ros2_ws/DP/checkpoints/model_best-2.pth \
-  model_dir:=~/ros2_ws/DP
+cd ~/ros2_ws
+./run_realtime_inference.sh --checkpoint_path ./DP/checkpoints/model_best.pth
 ```
+
+This script provides a comprehensive solution for real-time inference by:
+- **Configuring and Launching Gazebo:** Sets up the `cube_stacking_world.world` with appropriate physics and performance settings.
+- **Initializing Camera:** Positions the simulation camera to the viewpoint used during data collection.
+- **Executing Python Inference:** Activates the Python virtual environment and runs `inference_realtime.py` from this `DP` directory. This Python script loads the specified checkpoint and performs continuous inference.
+- **Parameterization:** Allows customization of model paths, inference rates, robot control parameters, and more via command-line arguments. See `run_realtime_inference.sh --help` for all options.
+- **Process Management:** Manages the lifecycle of Gazebo and the Python inference process, ensuring clean startup and shutdown.
+
+This approach is recommended as it encapsulates all necessary steps for deploying the diffusion policy in the simulated environment.
 
 ## Model Checkpoints
 

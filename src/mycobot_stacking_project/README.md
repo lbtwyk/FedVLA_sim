@@ -7,9 +7,9 @@ The main ROS 2 package for cube stacking simulation using the myCobot 280 robot 
 This package implements a complete cube stacking pipeline:
 
 - **Cube Spawner Node**: Manages cube placement in the simulation
-- **Stacking Manager Node**: Executes pick-and-place operations using MoveIt 2
+- **Stacking Manager Node**: Executes pick-and-place operations using MoveIt 2. **During data collection, this node serves as the autonomous expert, generating the trajectories that are recorded.**
 - **Gazebo Integration**: Custom world files and robot configurations with enhanced friction
-- **Data Collection**: Integration with trajectory data collection system
+- **Data Collection**: Integration with trajectory data collection system, where MoveIt2-driven demonstrations are recorded.
 
 ## Package Structure
 
@@ -61,10 +61,11 @@ Manages cube placement in the simulation environment:
 
 Implements the cube stacking task using MoveIt 2:
 
-- Executes pick-and-place operations with robust error handling
-- Supports both Cartesian and joint-space planning with retry mechanisms
-- Integrates with data collection system when enabled
-- Direct gripper control (not using MoveIt gripper control)
+- Executes pick-and-place operations with robust error handling.
+- Supports both Cartesian and joint-space planning with retry mechanisms.
+- **When data collection is enabled (via `collect_data.launch.py` and orchestrated by `collect_multiple_episodes.sh`), this node's MoveIt2-driven actions provide the expert demonstrations for training visuomotor policies.**
+- Integrates with data collection system when enabled.
+- Direct gripper control (not using MoveIt gripper control).
 
 **Key Features**:
 - Movement heights: Pre-grasp 0.15m, Grasp 0.11m, Lift 0.15m, Place 0.14m
@@ -89,7 +90,7 @@ ros2 launch mycobot_stacking_project fixed_stacking_task.launch.py
 
 ### collect_data.launch.py
 
-Launch file for data collection mode:
+Launch file for data collection mode. This launch file configures the `stacking_manager_node` to use MoveIt2 for autonomous task execution while the `state_logger_node` records the resulting trajectories.
 
 ```bash
 ros2 launch mycobot_stacking_project collect_data.launch.py \
@@ -153,7 +154,7 @@ ros2 launch mycobot_stacking_project collect_data.launch.py \
 
 ### With Data Collection System
 
-The stacking manager automatically integrates with the trajectory data collector when `data_collection_enabled` is set to true:
+The stacking manager automatically integrates with the trajectory data collector when `data_collection_enabled` is set to true (as in `collect_data.launch.py`). The MoveIt2-driven `stacking_manager_node` performs the cube stacking, and these actions are recorded as expert demonstrations.
 
 - Starts episode recording before task execution
 - Stops recording after task completion
