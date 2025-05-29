@@ -1,64 +1,70 @@
-# Diffusion Policy Training System
+# Diffusion Policy Training
 
-A PyTorch-based training system for visuomotor diffusion policies. This system trains neural networks to predict robot actions from camera images using diffusion models for cube stacking tasks.
+PyTorch-based training system for visuomotor diffusion policies with data augmentation, improved sampling, and robust training pipelines. Trains neural networks to predict robot actions from camera images for cube stacking tasks.
 
 ## Overview
 
-The diffusion policy training system implements:
-
-- **ResNet34 Vision Backbone**: Pre-trained feature extraction from 424x240 camera images
-- **Diffusion Model Architecture**: Generative model for robot control
-- **Multi-Layer Perceptron**: Action prediction with 6 joint angles + 1 gripper value
-- **Training Pipeline**: Automated training with checkpointing
+- **ResNet34 Vision**: Pre-trained feature extraction from 424x240 camera images
+- **Diffusion Model**: Improved generative model for robot control
+- **MLP Prediction**: 6 joint angles + 1 gripper value output
+- **State Augmentation**: Configurable noise injection for robust training
+- **Advanced Training**: Enhanced sampling and checkpointing
+- **Evaluation**: Sampling-based model assessment
 
 ## System Architecture
 
 ```
 DP/
-├── model.py                         # Neural network architecture
-├── train.py                         # Training script and diffusion sampling
+├── model.py                         # Enhanced neural network architecture
+├── train.py                         # Advanced training script with improved diffusion sampling
 ├── dataset.py                       # Data loading and preprocessing
+├── augmentation.py                  # State augmentation system for robust training
+├── inference_realtime.py            # Real-time inference for deployment
 ├── inference.py                     # Standalone inference script
 ├── inference_gazebo.py              # Gazebo integration inference
 ├── inference_modified.py            # Modified inference variants
-├── inference_realtime.py            # Real-time inference
-├── unet_model.py                    # Alternative UNet architecture
 ├── requirements.txt                 # Python dependencies
-├── run.sh                          # Training execution script
-├── resume_training.sh              # Resume training from checkpoint
-└── checkpoints/                    # Trained model checkpoints
-    ├── model_best-2.pth            # Best performing model
-    ├── model_best-3.pth            # Alternative checkpoint
-    └── ...                         # Additional checkpoints
+└── checkpoints/                     # Trained model checkpoints
+    ├── model_best.pth               # Best performing model
+    └── ...                          # Additional checkpoints
 ```
+
+## Enhanced Features
+
+### State Augmentation (augmentation.py)
+
+**Noise Types**: Gaussian, uniform, or scaled proportional noise
+**Options**: Noise scheduling, joint masking, random dropout, clipping bounds
+
+```python
+from augmentation import StateAugmenter
+
+augmenter = StateAugmenter(
+    noise_type="gaussian",
+    noise_scale=0.02,
+    noise_schedule="cosine_decay",
+    clip_bounds=(-1.0, 1.0)
+)
+```
+
+### Training Improvements
+
+- Enhanced p_sample and p_sample_loop functions
+- Sampling-based evaluation during training
+- Better batch processing with error handling
+- Improved checkpoint management and logging
 
 ## Model Architecture
 
-### DiffusionPolicyModel (model.py)
+**Vision Backbone**: ResNet34 (424x240 → 512 features, ImageNet pretrained, frozen)
+**State Network**: 4-layer MLP with 256 hidden units (image features + timestep → 7D action)
+**Diffusion**: 1000 timesteps, linear beta schedule (1e-4 to 0.02), DDPM sampling
 
-**Vision Backbone**: ResNet34
-- Input: 424x240 RGB images
-- Output: 512-dimensional feature vectors
-- Pre-trained on ImageNet
-- Frozen weights for stable training
-
-**State Prediction Network**:
-- Input: Image features + timestep embedding
-- Hidden layers: 4-layer MLP with 256 hidden units
-- Output: 7-dimensional action (6 joints + 1 gripper)
-- Activation: ReLU with dropout
-
-**Diffusion Process**:
-- Timesteps: 1000 (configurable)
-- Beta schedule: Linear from 1e-4 to 0.02
-- Sampling: DDPM with noise prediction
-
-### Key Features
-
-- **State Dimension**: 7 (6 joint angles + 1 gripper value)
-- **Image Resolution**: 424x240 pixels (optimized for inference speed)
-- **Training Data**: Degrees format for improved model sensitivity
-- **Inference Rate**: 10Hz for real-time robot control
+**Key Specs**:
+- State: 7D (6 joints + 1 gripper)
+- Images: 424x240 pixels
+- Data: Degrees format
+- Inference: 10Hz real-time
 
 ## Training
 
@@ -118,18 +124,33 @@ cd ~/ros2_ws/DP
 source ~/.venvs/diffusion_policy/bin/activate
 
 # Run training with default parameters
-./run.sh
-
-# Or run manually
 python train.py \
   --data_dir ~/mycobot_episodes_degrees \
   --output_dir ./checkpoints
+
+# Training with augmentation
+python train.py \
+  --data_dir ~/mycobot_episodes_degrees \
+  --output_dir ./checkpoints \
+  --use_augmentation \
+  --augmentation_noise_scale 0.02 \
+  --augmentation_noise_type gaussian
 ```
 
-**Resume Training**:
+**Advanced Training Options**:
 ```bash
-# Resume from checkpoint
-./resume_training.sh
+# Training with custom parameters
+python train.py \
+  --data_dir ~/mycobot_episodes_degrees \
+  --output_dir ./checkpoints \
+  --batch_size 32 \
+  --learning_rate 1e-4 \
+  --num_epochs 1000 \
+  --use_augmentation \
+  --augmentation_noise_schedule cosine_decay \
+  --save_interval 100 \
+  --eval_interval 50 \
+  --num_eval_samples 100
 ```
 
 ### Training Parameters
@@ -149,6 +170,16 @@ python train.py \
 - `--learning_rate`: Adam learning rate (default: 1e-4)
 - `--num_epochs`: Total training epochs (default: 1000)
 - `--save_interval`: Checkpoint save interval (default: 100)
+- `--eval_interval`: Evaluation interval (default: 50)
+- `--num_eval_samples`: Number of samples for evaluation (default: 100)
+
+**Augmentation Configuration**:
+- `--use_augmentation`: Enable state augmentation (default: False)
+- `--augmentation_noise_type`: Noise type (gaussian, uniform, scaled)
+- `--augmentation_noise_scale`: Noise scale (default: 0.01)
+- `--augmentation_noise_schedule`: Noise schedule (constant, linear_decay, cosine_decay)
+- `--augmentation_clip_bounds`: Clipping bounds for augmented states
+- `--augmentation_random_drop_prob`: Random dropout probability (default: 0.0)
 
 **Diffusion Configuration**:
 - `--diffusion_timesteps`: Total diffusion timesteps (default: 1000)
@@ -213,19 +244,13 @@ This approach is recommended as it encapsulates all necessary steps for deployin
 
 ### Available Models
 
-**model_best-2.pth**:
-- Training episodes: ~200 episodes
+**model_best.pth**:
+- Training episodes: ~300+ episodes
 - Data format: Degrees
-- Performance: Stable cube stacking
+- Performance: Enhanced cube stacking with augmentation
 - Recommended for inference
 
-**model_best-3.pth**:
-- Training episodes: ~300 episodes
-- Data format: Degrees
-- Performance: Enhanced precision
-- Alternative checkpoint
-
-### Checkpoint Contents
+### Enhanced Checkpoint Contents
 
 ```python
 checkpoint = {
@@ -233,11 +258,16 @@ checkpoint = {
     'model_state_dict': model.state_dict(),
     'optimizer_state_dict': optimizer.state_dict(),
     'train_loss': 0.0123,
+    'eval_loss': 0.0089,
+    'eval_mse': 0.0045,
     'args': {
         'state_dim': 7,
         'hidden_dim': 256,
         'num_mlp_layers': 4,
         'image_feature_dim': 512,
+        'use_augmentation': True,
+        'augmentation_noise_scale': 0.02,
+        'augmentation_noise_type': 'gaussian',
         # ... other training arguments
     }
 }
