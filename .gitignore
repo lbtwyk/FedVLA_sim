@@ -141,7 +141,8 @@ ENV/
 test_arm_positions.py
 run_inference_visualization.sh
 launch_cube_stacking.sh
+mycobot_episodes_degrees
 
 # Diffusion Policy checkpoints (large model files)
-DP/checkpoints/
+checkpoints
 *.pth
